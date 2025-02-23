@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace Fineide\LivewirePagebuilder\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class LivewirePagebuilderCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'livewire-pagebuilder';
 
     public $description = 'My command';
 

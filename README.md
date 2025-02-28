@@ -5,16 +5,7 @@
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/vfineide/livewire-pagebuilder/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/vfineide/livewire-pagebuilder/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/vfineide/livewire-pagebuilder.svg?style=flat-square)](https://packagist.org/packages/vfineide/livewire-pagebuilder)
 
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
-
-## Support us
-
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/livewire-pagebuilder.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/livewire-pagebuilder)
-
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
-
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
-
+This package gives you a pagebuilder that you can use in your Laravel application. It is built with Livewire and FluxUI, although FluxUI easily can be replaced with regular HTML fields.
 ## Installation
 
 You can install the package via composer:

@@ -5,7 +5,7 @@ use Livewire\Attributes\Layout;
 use App\Models\Page;
 use Illuminate\Support\Facades\File;
 
-new #[Layout('layouts.admin')] class extends Component
+new #[Layout('components.layouts.app.sidebar')] class extends Component
 {
     public $page;
     public $sections = [];
@@ -19,11 +19,17 @@ new #[Layout('layouts.admin')] class extends Component
 
     public function addSection($type, $name)
     {
+        $buttons = $this->getEditorButtons();
+        if (!isset($buttons[$type])) {
+            throw new \Exception("Unknown section type: {$type}");
+        }
+
         $this->sections[] = [
             'id' => uniqid(),
             'name' => $name,
             'type' => $type,
-            'content' => []
+            'content' => [],
+            'namespace' => $buttons[$type]['namespace']
         ];
     }
 
@@ -60,16 +66,19 @@ new #[Layout('layouts.admin')] class extends Component
         
         // Search paths
         $paths = [
-            resource_path('views/livewire/page-builder/components'),
-            resource_path('views/livewire/blocks')
+            dirname(__DIR__, 3) . '/resources/views/livewire/blocks' => 'flux-pagebuilder::', // Package path
+            resource_path('views/livewire/blocks') => ''                                      // Project path
         ];
 
-        foreach ($paths as $componentsPath) {
+        foreach ($paths as $componentsPath => $namespace) {
             if (!File::exists($componentsPath)) {
+                \Log::info("Path does not exist: " . $componentsPath);
                 continue;
             }
-
+            \Log::info("Checking path: " . $componentsPath);
+            
             $files = File::files($componentsPath);
+            \Log::info("Found " . count($files) . " files");
 
             foreach ($files as $file) {
                 $content = file_get_contents($file->getPathname());
@@ -77,6 +86,7 @@ new #[Layout('layouts.admin')] class extends Component
                 
                 if (preg_match('/static\s+\$metadata\s*=\s*(\[.*?\]);/s', $content, $matches)) {
                     $metadata = eval('return ' . $matches[1] . ';');
+                    $metadata['namespace'] = $namespace; // Store the namespace
                     $buttons[$type] = $metadata;
                 }
             }
@@ -89,15 +99,13 @@ new #[Layout('layouts.admin')] class extends Component
 
 <div  x-data="{ 
     sections: @entangle('sections'), 
-    previewMode: 'desktop',
-    init() {
-    
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelector('#flux-sidebar').classList.add('hidden');
-            document.querySelector('#flux-sidebar').remove();
-        });
-    }
+    previewMode: 'desktop'
 }">
+
+<script src="
+https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js
+"></script>
+
 <style>
     [data-flux-main] {
         padding: 0 !important;
@@ -113,7 +121,7 @@ new #[Layout('layouts.admin')] class extends Component
             <h2 class="text-xl font-bold mb-4">Endre innhold</h2>
 
 
-            <h2 class="text-sm text-gray-500 font-bold mb-2">Legg til seksjoner</h2>
+            <h2 class="text-sm text-gray-500 font-bold mb-2 text-yellow-700">Legg til seksjoner</h2>
 
             <div class="mb-4 grid grid-cols-2 gap-2">
             
@@ -154,7 +162,7 @@ new #[Layout('layouts.admin')] class extends Component
                             <h3 class="font-bold text-sm  select-none">{{ $section['name'] ?? $section['type'] }}</h3>
                         </div>
                         <div x-show="isOpen" class="mt-2">
-                            @livewire("page-builder.components.{$section['type']}", [
+                            @livewire("{$section['namespace']}page-builder.components.{$section['type']}", [
                                 'index' => $loop->index, 
                                 'content' => $section['content'],
                                 'editor' => true
@@ -210,7 +218,7 @@ new #[Layout('layouts.admin')] class extends Component
                 <div class="overflow-x-hidden overflow-y-scroll">
                     @foreach ($sections as $section)
                     <div class="" wire:key="preview-{{ $loop->index }}">
-                        @livewire("page-builder.components.{$section['type']}", [
+                        @livewire("{$section['namespace']}page-builder.components.{$section['type']}", [
                             'content' => $section['content'], 
                             'index' => $loop->index
                         ], key("preview-child-{$section['id']}-".now()->timestamp))

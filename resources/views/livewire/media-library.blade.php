@@ -126,7 +126,7 @@ new class extends Component
  
     @error('photo') <span class="error">{{ $message }}</span> @enderror
  
-    <flux:button type="submit" variant="primary">Save photo</flux:button>
+    <flux:button type="submit" variant="primary">Save photo.</flux:button>
 </form>
 
 

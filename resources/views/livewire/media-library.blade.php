@@ -29,11 +29,14 @@ new class extends Component
             $extension = $this->photo->getClientOriginalExtension();
             $hashedName = md5($this->photo->getClientOriginalName() . time()) . '.' . $extension;
             
-            // Store the file directly to S3 (or local disk in development)
+
+            Storage::disk('r2')->put('media/'.$hashedName, $this->photo);
+            dd($hashedName);
+            // Store the file directly to R2
             $path = $this->photo->storeAs(
                 'media', 
                 $hashedName, 
-                'r2'  // Use 's3' disk instead of 'public'
+                'r2'  // Use 'r2' disk
             );
 
             \Log::info('File stored at: ' . $path);
@@ -42,7 +45,7 @@ new class extends Component
             $media->path = $path;
             $media->name = $this->photo->getClientOriginalName();
             $media->mime_type = $this->photo->getMimeType();
-            $media->disk = 'r2';  // Set disk to 's3'
+            $media->disk = 'r2';  // Set disk to 'r2'
             $media->size = $this->photo->getSize();
             $media->save();
             

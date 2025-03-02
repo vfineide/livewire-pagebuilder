@@ -22,6 +22,7 @@ new class extends Component
 
     public function save()
     {
+   
         try {
             $this->validate();
             
@@ -36,7 +37,7 @@ new class extends Component
                 'public'
             );
 
-            Flux::toast($path);
+            //Flux::toast($path);
 
             Storage::put('media/'.$hashedName, $this->photo);
 
@@ -56,9 +57,11 @@ new class extends Component
             $media->disk = 'public';
             $media->size = $this->photo->getSize();
             $media->save();
+            dd($media);
             
         } catch (\Exception $e) {
             \Log::error('Upload failed: ' . $e->getMessage());
+            dd($e);
         }
     }
 
@@ -126,7 +129,7 @@ new class extends Component
  
     @error('photo') <span class="error">{{ $message }}</span> @enderror
  
-    <flux:button type="submit" variant="primary">Save photo.</flux:button>
+    <flux:button type="submit" variant="primary">Save photo</flux:button>
 </form>
 
 

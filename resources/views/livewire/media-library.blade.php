@@ -31,6 +31,9 @@ new class extends Component
                 $hashedName, 
                 'public'
             );
+
+            //\Storage::disk('s3')->put($path, (string) $resizedImage->encode());
+
             
             \Log::info('File stored at: ' . $path);
 
@@ -41,7 +44,6 @@ new class extends Component
             $media->disk = 'public';
             $media->size = $this->photo->getSize();
             $media->save();
-            dd($media);
             
         } catch (\Exception $e) {
             \Log::error('Upload failed: ' . $e->getMessage());
@@ -140,6 +142,9 @@ new class extends Component
                                             ✕
                                         </button>
                                     @endif
+
+
+                                    {{ Storage::get($media['path']) }}
 
                                     @if(Str::startsWith($media['mime_type'], 'image/'))
                                         <img

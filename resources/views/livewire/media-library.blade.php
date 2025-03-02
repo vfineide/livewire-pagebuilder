@@ -5,6 +5,8 @@ use Livewire\WithFileUploads;
 use Livewire\Attributes\Validate;
 
 use App\Models\Media;
+use Illuminate\Support\Facades\Storage;
+
 
 new class extends Component
 {
@@ -16,6 +18,8 @@ new class extends Component
     public $library;
     public $selectedMediaIds = [];
     public $selectedMedia;
+    public $mediaTab;
+
     public function save()
     {
         try {
@@ -31,6 +35,14 @@ new class extends Component
                 $hashedName, 
                 'public'
             );
+
+            Flux::toast($path);
+
+            Storage::put('media/'.$hashedName, $this->photo);
+
+
+
+
 
             //\Storage::disk('s3')->put($path, (string) $resizedImage->encode());
 

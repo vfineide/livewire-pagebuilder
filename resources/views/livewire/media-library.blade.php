@@ -82,7 +82,7 @@ new class extends Component
         <div class="media-library-content">
             <!-- The Blade portion, using FluxUI tabs -->
             @if ($selectedMediaIds)
-            <div class="relative">
+            <div class="relative rounded">
                 <button 
                     wire:click="unselectMedia" 
                     class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full text-white transition-all"

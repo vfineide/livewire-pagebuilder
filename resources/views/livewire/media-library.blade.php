@@ -22,7 +22,6 @@ new class extends Component
 
     public function save()
     {
-   
         try {
             $this->validate();
             
@@ -30,38 +29,26 @@ new class extends Component
             $extension = $this->photo->getClientOriginalExtension();
             $hashedName = md5($this->photo->getClientOriginalName() . time()) . '.' . $extension;
             
-            // Store in the public disk under photos directory
+            // Store the file directly to S3 (or local disk in development)
             $path = $this->photo->storeAs(
                 'media', 
                 $hashedName, 
-                'public'
+                'r2'  // Use 's3' disk instead of 'public'
             );
 
-            //Flux::toast($path);
-
-            Storage::put('media/'.$hashedName, $this->photo);
-
-
-
-
-
-            //\Storage::disk('s3')->put($path, (string) $resizedImage->encode());
-
-            
             \Log::info('File stored at: ' . $path);
 
             $media = new Media();
             $media->path = $path;
             $media->name = $this->photo->getClientOriginalName();
             $media->mime_type = $this->photo->getMimeType();
-            $media->disk = 'public';
+            $media->disk = 'r2';  // Set disk to 's3'
             $media->size = $this->photo->getSize();
             $media->save();
-            dd($media);
             
         } catch (\Exception $e) {
             \Log::error('Upload failed: ' . $e->getMessage());
-            dd($e);
+            throw $e;
         }
     }
 

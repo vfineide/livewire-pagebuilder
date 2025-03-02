@@ -30,7 +30,11 @@ new class extends Component
             $hashedName = md5($this->photo->getClientOriginalName() . time()) . '.' . $extension;
             
 
-            Storage::disk('r2')->put('media/'.$hashedName, $this->photo);
+            //Storage::disk('r2')->put('media/'.$hashedName, $this->photo);
+
+            $this->photo->storeAs('media', $hashedName);
+
+
             dd($hashedName);
             // Store the file directly to R2
             $path = $this->photo->storeAs(

@@ -3,11 +3,13 @@
 namespace Fineide\LivewirePagebuilder;
 
 use Livewire\Component;
+use Livewire\Attributes\Modelable;
 
 abstract class BaseBlock extends Component
 {
     public $section = [];
     public $index;
+    #[Modelable]
     public $content;
     public $editor = false;
 
@@ -18,9 +20,4 @@ abstract class BaseBlock extends Component
         $this->editor = $editor;
         $this->section = $content;
     }
-
-    public function saveSection()
-    {
-        $this->dispatch('updateSectionContent', $this->index, $this->section);
-    }
-} 
+}

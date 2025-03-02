@@ -4,6 +4,8 @@ namespace Fineide\LivewirePagebuilder;
 
 use Illuminate\Support\ServiceProvider;
 use Livewire\Volt\Volt;
+use Illuminate\Support\Facades\Blade;
+use Fineide\LivewirePagebuilder\View\Components\BlockEditor;
 
 class LivewirePagebuilderServiceProvider extends ServiceProvider
 {
@@ -21,9 +23,13 @@ class LivewirePagebuilderServiceProvider extends ServiceProvider
             ]);
 
             // Register the route
-            Volt::route('/admin/pagebuilder/{id}', 'pagebuilder')
+                Volt::route('/admin/pagebuilder/{id}', 'pagebuilder')
+                    ->middleware(['web'])
+                    ->name('pagebuilder.edit');
+
+                Volt::route('/admin/pagebuilder/preview/{id}', 'preview')
                 ->middleware(['web'])
-                ->name('pagebuilder.edit');
+                    ->name('pagebuilder.preview');
         }
         
         // Publish views and config separately
@@ -42,6 +48,8 @@ class LivewirePagebuilderServiceProvider extends ServiceProvider
             __DIR__.'/../resources/views/blocks' => resource_path('views/livewire/blocks'),
             __DIR__.'/../config/pagebuilder.php' => config_path('pagebuilder.php'),
         ], 'pagebuilder');
+
+        Blade::component('livewire-pagebuilder::block-editor', BlockEditor::class);
     }
 
     public function register()

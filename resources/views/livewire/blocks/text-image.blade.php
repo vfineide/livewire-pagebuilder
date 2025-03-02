@@ -1,6 +1,6 @@
 <?php
 
-use App\Livewire\PageBuilder\BaseBlock;
+use Fineide\LivewirePagebuilder\BaseBlock;
 
 new class extends BaseBlock
 {

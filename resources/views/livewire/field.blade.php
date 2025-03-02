@@ -1,6 +1,18 @@
-@props(['field', 'config', 'wireModel'])
+<?php
 
-@switch($config['type'])
+use Livewire\Volt\Component;
+
+new class extends Component
+{
+    public $schema;
+} 
+?>
+<div>
+<pre class="">
+{{ print_r($schema) }}
+</pre>
+
+@switch($schema['type'])
     @case('select')
         <flux:select wire:model="{{ $wireModel }}" placeholder="{{ $config['label'] }}"
             wire:change="saveSection"
@@ -47,7 +59,7 @@
                     </button>
                     
                     @foreach($config['fields'] as $subField => $subConfig)
-                        <x-dynamic-form-field 
+                        <x-field 
                             :field="$subField"
                             :config="$subConfig"
                             :wire-model="$wireModel . '.' . $index . '.' . $subField"
@@ -66,7 +78,7 @@
 
     @case('group')
         @foreach($config['fields'] as $subField => $subConfig)
-            <x-dynamic-form-field 
+            <x-field 
                 :field="$subField"
                 :config="$subConfig"
                 :wire-model="$wireModel . '.' . $subField"
@@ -74,3 +86,5 @@
         @endforeach
         @break
 @endswitch 
+
+</div> 

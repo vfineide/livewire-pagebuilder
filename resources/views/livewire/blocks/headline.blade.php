@@ -45,15 +45,14 @@ new class extends BaseBlock
 
 <div>
     {{-- Editor Mode --}}
-    @if($editor)
+    @if(1)
         <div class="space-y-2 py-4">
             @foreach(static::$schema as $field => $config)
-                <x-dynamic-form-field 
-                    :field="$field" 
-                    :config="$config" 
-                    :wire-model="'section.' . $field"
-                    wire:change="saveSection"
-                />
+                @livewire('dynamic-form-fields', [
+                    'field' => $field,
+                    'config' => $config,
+                    'wireModel' => 'section.' . $field
+                ], key('field-' . $field))
             @endforeach
         </div>
 

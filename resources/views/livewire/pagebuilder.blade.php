@@ -5,7 +5,7 @@ use Livewire\Attributes\Layout;
 use App\Models\Page;
 use Illuminate\Support\Facades\File;
 
-new #[Layout('components.layouts.app.sidebar')] class extends Component
+new #[Layout('components.layouts.app.blank')] class extends Component
 {
     public $page;
     public $sections = [];
@@ -41,7 +41,11 @@ new #[Layout('components.layouts.app.sidebar')] class extends Component
 
     public function updateSectionContent($index, $content)
     {
-        $this->sections[$index]['content'] = $content;
+        $this->sections[$index]['content'] = array_merge(
+            $this->sections[$index]['content'] ?? [],
+            $content
+        );
+        
         $this->savePage();
     }
 
@@ -66,8 +70,7 @@ new #[Layout('components.layouts.app.sidebar')] class extends Component
         
         // Search paths
         $paths = [
-            dirname(__DIR__, 3) . '/resources/views/livewire/blocks' => 'flux-pagebuilder::', // Package path
-            resource_path('views/livewire/blocks') => ''                                      // Project path
+            resource_path('views/livewire/blocks') => 'blocks.'                    // Project path
         ];
 
         foreach ($paths as $componentsPath => $namespace) {
@@ -84,9 +87,13 @@ new #[Layout('components.layouts.app.sidebar')] class extends Component
                 $content = file_get_contents($file->getPathname());
                 $type = str_replace('.blade.php', '', $file->getFilename());
                 
-                if (preg_match('/static\s+\$metadata\s*=\s*(\[.*?\]);/s', $content, $matches)) {
-                    $metadata = eval('return ' . $matches[1] . ';');
-                    $metadata['namespace'] = $namespace; // Store the namespace
+                // Extract both metadata and schema
+                if (preg_match('/static\s+\$metadata\s*=\s*(\[.*?\]);/s', $content, $metadataMatches) &&
+                    preg_match('/public\s+\$schema\s*=\s*(\[.*?\]);/s', $content, $schemaMatches)) {
+                    $metadata = eval('return ' . $metadataMatches[1] . ';');
+                    $schema = eval('return ' . $schemaMatches[1] . ';');
+                    $metadata['namespace'] = $namespace;
+                    $metadata['schema'] = $schema; // Add schema to metadata
                     $buttons[$type] = $metadata;
                 }
             }
@@ -101,6 +108,10 @@ new #[Layout('components.layouts.app.sidebar')] class extends Component
     sections: @entangle('sections'), 
     previewMode: 'desktop'
 }">
+
+
+
+
 
 <script src="
 https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js
@@ -117,11 +128,15 @@ https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js
 </style>
     <div class="flex">
         <!-- Editor Column (1/2) -->
-        <div class="w-1/4 p-4 bg-gray-100 overflow-y-scroll max-h-[92vh]    flex flex-col">
-            <h2 class="text-xl font-bold mb-4">Endre innhold</h2>
+        <div class="w-1/4 p-4 bg-gray-100 overflow-y-scroll h-screen space-y-4 flex flex-col">
+
+            <div>
+            <flux:button variant="ghost" inset="left" href="/admin/pages">Tilbake</flux:button>
+            </div>
+            <h2 class="text-xl font-bold mb-4">Sidebygger</h2>
 
 
-            <h2 class="text-sm text-gray-500 font-bold mb-2 text-yellow-700">Legg til seksjoner</h2>
+            <h2 class="text-sm text-gray-500 font-bold mb-2">Legg til seksjoner</h2>
 
             <div class="mb-4 grid grid-cols-2 gap-2">
             
@@ -161,12 +176,24 @@ https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js
                             <div class=" text-gray-500">&#x2630;</div>
                             <h3 class="font-bold text-sm  select-none">{{ $section['name'] ?? $section['type'] }}</h3>
                         </div>
-                        <div x-show="isOpen" class="mt-2">
-                            @livewire("{$section['namespace']}page-builder.components.{$section['type']}", [
-                                'index' => $loop->index, 
-                                'content' => $section['content'],
-                                'editor' => true
-                            ], key("editor-child-{$section['id']}"))
+                        <div x-show="isOpen" class="mt-2 space-y-2">
+
+                        @foreach($this->getEditorButtons()[$section['type']]['schema'] ?? [] as $name => $schema)
+
+                    
+                         <livewire:fields
+                            :schema="$schema"
+                            :index="$index"
+                            :name="$name"
+                            :content="$section['content']"
+
+                    
+                           wire:key="editor-{{ $section['id'] }}-{{ $index }} . {{ rand() }}"
+                        />
+
+                        @endforeach
+
+
 
                             <div class="flex justify-between mt-2">
                                 <flux:button wire:click="removeSection({{ $index }})" variant="danger" size="sm">Slett</flux:button>
@@ -218,7 +245,8 @@ https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js
                 <div class="overflow-x-hidden overflow-y-scroll">
                     @foreach ($sections as $section)
                     <div class="" wire:key="preview-{{ $loop->index }}">
-                        @livewire("{$section['namespace']}page-builder.components.{$section['type']}", [
+
+                        @livewire("{$section['namespace']}.{$section['type']}", [
                             'content' => $section['content'], 
                             'index' => $loop->index
                         ], key("preview-child-{$section['id']}-".now()->timestamp))

@@ -34,7 +34,7 @@ new class extends Component
 
             $this->photo->storeAs('media', $hashedName);
 
-
+            $path = 'media/'.$hashedName;
 
             \Log::info('File stored at: ' . $path);
 

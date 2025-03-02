@@ -35,7 +35,6 @@ new class extends Component
             $this->photo->storeAs('media', $hashedName);
 
 
-            dd($hashedName);
             // Store the file directly to R2
             $path = $this->photo->storeAs(
                 'media', 
@@ -100,7 +99,7 @@ new class extends Component
                 >
                     ×
                 </button>
-                <img src="{{ Storage::disk('public')->url($selectedMedia->path) }}" alt="Selected Media" class="w-full h-auto rounded"/>
+                <img src="{{ Storage::disk()->url($selectedMedia->path) }}" alt="Selected Media" class="w-full h-auto rounded"/>
             </div>
             @else
             <flux:tab.group class="media-library-tabs">
@@ -157,7 +156,7 @@ new class extends Component
 
                                     @if(Str::startsWith($media['mime_type'], 'image/'))
                                         <img
-                                            src="{{ Storage::disk($media['disk'])->url($media['path']) }}"
+                                            src="{{ Storage::disk()->url($media['path']) }}"
                                             alt="{{ $media['name'] }}"
                                             class="block w-full h-auto rounded"
                                         />

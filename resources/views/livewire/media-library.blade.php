@@ -35,12 +35,6 @@ new class extends Component
             $this->photo->storeAs('media', $hashedName);
 
 
-            // Store the file directly to R2
-            $path = $this->photo->storeAs(
-                'media', 
-                $hashedName, 
-                'r2'  // Use 'r2' disk
-            );
 
             \Log::info('File stored at: ' . $path);
 
@@ -61,7 +55,7 @@ new class extends Component
 
     public function loadMedia()
     {
-       $this->library = Media::all();
+       $this->library = Media::latest()->get();
     }
 
     public function selectMedia($id)

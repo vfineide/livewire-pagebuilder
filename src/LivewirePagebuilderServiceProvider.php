@@ -2,10 +2,10 @@
 
 namespace Fineide\LivewirePagebuilder;
 
+use Fineide\LivewirePagebuilder\View\Components\BlockEditor;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Volt\Volt;
-use Illuminate\Support\Facades\Blade;
-use Fineide\LivewirePagebuilder\View\Components\BlockEditor;
 
 class LivewirePagebuilderServiceProvider extends ServiceProvider
 {
@@ -13,25 +13,25 @@ class LivewirePagebuilderServiceProvider extends ServiceProvider
     {
         // Register views directory
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'livewire-pagebuilder');
-        
+
         // Mount Volt Components
         if (class_exists(Volt::class)) {
             // Mount the views directory for Volt
             Volt::mount([
-                __DIR__ . '/../resources/views/livewire',
-                __DIR__ . '/../resources/views/blocks',
+                __DIR__.'/../resources/views/livewire',
+                __DIR__.'/../resources/views/blocks',
             ]);
 
             // Register the route
-                Volt::route('/admin/pagebuilder/{id}', 'pagebuilder')
-                    ->middleware(['web'])
-                    ->name('pagebuilder.edit');
-
-                Volt::route('/admin/pagebuilder/preview/{id}', 'preview')
+            Volt::route('/admin/pagebuilder/{id}', 'pagebuilder')
                 ->middleware(['web'])
-                    ->name('pagebuilder.preview');
+                ->name('pagebuilder.edit');
+
+            Volt::route('/admin/pagebuilder/preview/{id}', 'preview')
+                ->middleware(['web'])
+                ->name('pagebuilder.preview');
         }
-        
+
         // Publish views and config separately
         $this->publishes([
             __DIR__.'/../resources/views/livewire' => resource_path('views/livewire'),

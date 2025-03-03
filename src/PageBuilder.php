@@ -3,12 +3,13 @@
 namespace Fineide\LivewirePagebuilder;
 
 use Livewire\Component;
-use Illuminate\Support\Facades\File;
 
 class PageBuilder extends Component
 {
     public $page;
+
     public $sections = [];
+
     public $listeners = ['updateSectionContent'];
 
     public function mount($id)
@@ -23,4 +24,4 @@ class PageBuilder extends Component
     {
         return view('livewire-pagebuilder::pagebuilder');
     }
-} 
+}

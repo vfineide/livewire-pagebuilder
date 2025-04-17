@@ -7,7 +7,9 @@ use Illuminate\View\Component;
 class BlockEditor extends Component
 {
     public $schema;
+
     public $section;
+
     public $wireKey;
 
     public function __construct($schema, $section, $wireKey)
@@ -21,4 +23,4 @@ class BlockEditor extends Component
     {
         return view('livewire-pagebuilder::components.block-editor');
     }
-} 
+}

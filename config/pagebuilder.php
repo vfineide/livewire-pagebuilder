@@ -22,4 +22,4 @@ return [
     |
     */
     'layout' => 'layouts.admin',
-]; 
+];

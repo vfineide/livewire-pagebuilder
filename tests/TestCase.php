@@ -2,9 +2,9 @@
 
 namespace Fineide\LivewirePagebuilder\Tests;
 
+use Fineide\LivewirePagebuilder\LivewirePagebuilderServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Fineide\LivewirePagebuilder\LivewirePagebuilderServiceProvider;
 
 class TestCase extends Orchestra
 {

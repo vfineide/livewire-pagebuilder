@@ -1,14 +1,16 @@
 <?php
 
-use Livewire\Volt\Component;
-use Livewire\Attributes\Layout;
 use App\Models\Page;
 use Illuminate\Support\Facades\File;
+use Livewire\Attributes\Layout;
+use Livewire\Volt\Component;
 
 new #[Layout('components.layouts.app.pagebuilder')] class extends Component
 {
     public $page;
+
     public $sections = [];
+
     public $listeners = ['updateSectionContent', 'selectedMedia'];
 
     public function mount($id)
@@ -17,11 +19,10 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
         $this->sections = $this->page->sections ?? [];
     }
 
-
     public function addSection($type, $name)
     {
         $buttons = $this->getEditorButtons();
-        if (!isset($buttons[$type])) {
+        if (! isset($buttons[$type])) {
             throw new \Exception("Unknown section type: {$type}");
         }
 
@@ -30,9 +31,9 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
             'name' => $name,
             'type' => $type,
             'content' => [],
-            'namespace' => $buttons[$type]['namespace']
+            'namespace' => $buttons[$type]['namespace'],
         ];
-       
+
     }
 
     public function removeSection($index)
@@ -47,7 +48,7 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
             $this->sections[$index]['content'] ?? [],
             $content
         );
-        
+
         $this->savePage();
     }
 
@@ -69,31 +70,32 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
     public function getEditorButtons()
     {
         $buttons = [];
-        
+
         // Search paths
         $paths = [
-            resource_path('views/livewire/blocks') => 'blocks.'                    // Project path
+            resource_path('views/livewire/blocks') => 'blocks.',                    // Project path
         ];
 
         foreach ($paths as $componentsPath => $namespace) {
-            if (!File::exists($componentsPath)) {
-                \Log::info("Path does not exist: " . $componentsPath);
+            if (! File::exists($componentsPath)) {
+                \Log::info('Path does not exist: '.$componentsPath);
+
                 continue;
             }
-            \Log::info("Checking path: " . $componentsPath);
-            
+            \Log::info('Checking path: '.$componentsPath);
+
             $files = File::files($componentsPath);
-            \Log::info("Found " . count($files) . " files");
+            \Log::info('Found '.count($files).' files');
 
             foreach ($files as $file) {
                 $content = file_get_contents($file->getPathname());
                 $type = str_replace('.blade.php', '', $file->getFilename());
-                
+
                 // Extract both metadata and schema
                 if (preg_match('/static\s+\$metadata\s*=\s*(\[.*?\]);/s', $content, $metadataMatches) &&
                     preg_match('/public\s+\$schema\s*=\s*(\[.*?\]);/s', $content, $schemaMatches)) {
-                    $metadata = eval('return ' . $metadataMatches[1] . ';');
-                    $schema = eval('return ' . $schemaMatches[1] . ';');
+                    $metadata = eval('return '.$metadataMatches[1].';');
+                    $schema = eval('return '.$schemaMatches[1].';');
                     $metadata['namespace'] = $namespace;
                     $metadata['schema'] = $schema; // Add schema to metadata
                     $buttons[$type] = $metadata;

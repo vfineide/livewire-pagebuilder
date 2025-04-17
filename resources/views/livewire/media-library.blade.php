@@ -64,7 +64,7 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
             $hashedName = md5($this->photo->getClientOriginalName() . time()) . '.' . $extension;
             
             // Determine disk based on environment
-            $disk = app()->environment('production') ? 'r2' : 'public';
+            $disk = app()->environment('production') ? 'public' : 'public';
             
             $this->photo->storeAs('media', $hashedName, ['disk' => $disk]);
             $path = 'media/'.$hashedName;

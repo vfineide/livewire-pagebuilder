@@ -21,13 +21,29 @@ new class extends Component
     public $selectedMedia;
     public $mediaTab;
     public $fieldName;
+    public $fieldLabel;
+    public $blockIndex;
+    public $content;
 
-    public function mount($model, $multiple = false)
-    {
-        $this->library = collect();
-        // Extract field name from the model string (e.g., "section.image" -> "image")
-        $this->fieldName = last(explode('.', $model));
+public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel = null, $content = [])
+{
+    $this->library = collect();
+    $this->fieldName = last(explode('.', $model));
+    $this->blockIndex = $blockIndex;
+    $this->fieldLabel = $fieldLabel;
+
+    // If we have content for this field, show it as selected
+    if (isset($content[$this->fieldName])) {
+        $mediaData = $content[$this->fieldName];
+        if (is_array($mediaData) && isset($mediaData['id'])) {
+            $media = Media::find($mediaData['id']);
+            if ($media) {
+                $this->selectedMedia = $media;
+                $this->selectedMediaIds = [$media->id];
+            }
+        }
     }
+}
 
     // Automatically trigger save when a file is selected
     public function updatedPhoto()
@@ -86,10 +102,11 @@ new class extends Component
             $this->selectedMediaIds[] = $id;
         }
 
-        // Dispatch with both the media and the field name
+        // Include blockIndex in the dispatched data
         $this->dispatch('media-selected', [
             'media' => $this->selectedMedia,
-            'fieldName' => $this->fieldName
+            'fieldName' => $this->fieldName,
+            'blockIndex' => $this->blockIndex
         ]);
     }
 
@@ -104,6 +121,9 @@ new class extends Component
 };
 ?>
 <div class="max-w-[320px]">
+
+               <flux:label>{{ $fieldLabel ?? 'Bilde' }}</flux:label>
+
     <div class="media-library">
         <!-- Selected Media or Preview Display -->
         @if($selectedMedia || $photoPreview)

@@ -253,7 +253,7 @@ https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filep
 </flux:button.group>
 </div>
             <!-- Browser Frame -->
-            <div class="w-full rounded-md border shadow-lg  h-[80vh]" :class="previewMode === 'mobile' ? 'max-w-xs mx-auto' : 'w-full'">
+            <div class="w-full rounded-md border shadow-lg  h-[90vh] overflow-y-scroll" :class="previewMode === 'mobile' ? 'max-w-xs mx-auto' : 'w-full'">
 
 
                 <!-- Browser Title Bar -->
@@ -270,17 +270,7 @@ https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filep
                     @foreach ($sections as $section)
                     <div class="" wire:key="preview-{{ $loop->index }}">
 
-                        @if(isset($section['content']['image']))
-                            @php
-                                $image = is_array($section['content']['image']) 
-                                    ? (object)$section['content']['image'] 
-                                    : $section['content']['image'];
-                            @endphp
-                            <img 
-                                src="{{ Storage::url($image->path) }}" 
-                                alt="{{ $section['content']['title'] ?? 'Section image' }}"
-                                class="w-full rounded-lg shadow-lg">
-                        @endif
+
 
                         @livewire("{$section['namespace']}.{$section['type']}", [
                             'content' => $section['content'], 

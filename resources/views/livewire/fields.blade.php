@@ -47,7 +47,7 @@ new class extends Component
     #[On('media-selected')]
     public function onMediaSelected($data)
     {
-        if ($data['fieldName'] === $this->name) {
+        if ($data['fieldName'] === $this->name && $data['blockIndex'] === $this->index) {
             $this->handleMediaSelected($data);
         }
     }
@@ -80,6 +80,9 @@ new class extends Component
         <livewire:media-library 
             model="section.{{ $name }}" 
             :multiple="$schema['multiple'] ?? false"
+            :blockIndex="$index"
+            :fieldLabel="$schema['label']"
+            :content="$section"
         />
         @break
 

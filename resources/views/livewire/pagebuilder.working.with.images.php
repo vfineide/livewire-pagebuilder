@@ -4,7 +4,6 @@ use Livewire\Volt\Component;
 use Livewire\Attributes\Layout;
 use App\Models\Page;
 use Illuminate\Support\Facades\File;
-use App\Models\Media;
 
 new #[Layout('components.layouts.app.pagebuilder')] class extends Component
 {
@@ -44,21 +43,9 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
 
     public function updateSectionContent($index, $content)
     {
-        // Convert media objects to their IDs or necessary data
-        $processedContent = collect($content)->map(function($value, $key) {
-            if (is_object($value) && get_class($value) === Media::class) {
-                return [
-                    'id' => $value->id,
-                    'path' => $value->path,
-                    'name' => $value->name
-                ];
-            }
-            return $value;
-        })->toArray();
-
         $this->sections[$index]['content'] = array_merge(
             $this->sections[$index]['content'] ?? [],
-            $processedContent
+            $content
         );
         
         $this->savePage();
@@ -269,18 +256,6 @@ https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filep
                 <div class="overflow-x-hidden overflow-y-scroll">
                     @foreach ($sections as $section)
                     <div class="" wire:key="preview-{{ $loop->index }}">
-
-                        @if(isset($section['content']['image']))
-                            @php
-                                $image = is_array($section['content']['image']) 
-                                    ? (object)$section['content']['image'] 
-                                    : $section['content']['image'];
-                            @endphp
-                            <img 
-                                src="{{ Storage::url($image->path) }}" 
-                                alt="{{ $section['content']['title'] ?? 'Section image' }}"
-                                class="w-full rounded-lg shadow-lg">
-                        @endif
 
                         @livewire("{$section['namespace']}.{$section['type']}", [
                             'content' => $section['content'], 

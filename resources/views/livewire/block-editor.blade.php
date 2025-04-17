@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Media;
 use Livewire\Attributes\On;
 
-new class extends Component
+new cla ss extends Component
 {   
     public $schema;
     public $section;

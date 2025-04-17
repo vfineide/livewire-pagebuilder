@@ -6,6 +6,7 @@ use Livewire\Attributes\Validate;
 
 use App\Models\Media;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 
 new class extends Component
@@ -19,10 +20,13 @@ new class extends Component
     public $selectedMediaIds = [];
     public $selectedMedia;
     public $mediaTab;
+    public $fieldName;
 
-    public function mount()
+    public function mount($model, $multiple = false)
     {
-        $this->library = collect(); // Initialize as empty collection
+        $this->library = collect();
+        // Extract field name from the model string (e.g., "section.image" -> "image")
+        $this->fieldName = last(explode('.', $model));
     }
 
     // Automatically trigger save when a file is selected
@@ -40,25 +44,24 @@ new class extends Component
         try {
             $this->validate();
             
-            // Generate a hashed filename with original extension
             $extension = $this->photo->getClientOriginalExtension();
             $hashedName = md5($this->photo->getClientOriginalName() . time()) . '.' . $extension;
             
-            $this->photo->storeAs('media', $hashedName, ['visibility' => 'public']);
-
+            // Determine disk based on environment
+            $disk = app()->environment('production') ? 'r2' : 'public';
+            
+            $this->photo->storeAs('media', $hashedName, ['disk' => $disk]);
             $path = 'media/'.$hashedName;
 
             $media = new Media();
             $media->path = $path;
             $media->name = $this->photo->getClientOriginalName();
             $media->mime_type = $this->photo->getMimeType();
-            $media->disk = 'r2';
+            $media->disk = $disk; // Save which disk was used
             $media->size = $this->photo->getSize();
             $media->save();
 
-            // Load the library before selecting the new media
             $this->loadMedia();
-            // Select the newly uploaded media
             $this->selectMedia($media->id);
             
         } catch (\Exception $e) {
@@ -70,7 +73,7 @@ new class extends Component
 
     public function loadMedia()
     {
-       $this->library = Media::latest()->get();
+        $this->library = Media::latest()->get();
     }
 
     public function selectMedia($id)
@@ -82,6 +85,12 @@ new class extends Component
         } else {
             $this->selectedMediaIds[] = $id;
         }
+
+        // Dispatch with both the media and the field name
+        $this->dispatch('media-selected', [
+            'media' => $this->selectedMedia,
+            'fieldName' => $this->fieldName
+        ]);
     }
 
     public function unselectMedia()
@@ -106,18 +115,9 @@ new class extends Component
                     ×
                 </button>
                 @if($selectedMedia)
-                    <img src="{{ Storage::disk()->url($selectedMedia->path) }}" alt="Selected Media" class="w-full h-auto rounded"/>
+                    <img src="{{ Storage::url($selectedMedia->path) }}" alt="Selected Media" class="w-full h-auto rounded"/>
                 @elseif($photoPreview)
-                    <div class="relative">
-                        <img src="{{ $photoPreview }}" alt="Preview" class="w-full h-auto rounded"/>
-                        <div 
-                            wire:loading 
-                            wire:target="photo"
-                            class="absolute inset-0 bg-black bg-opacity-50 rounded flex items-center justify-center"
-                        >
-                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                        </div>
-                    </div>
+                    <img src="{{ $photoPreview }}" alt="Preview" class="w-full h-auto rounded"/>
                 @endif
             </div>
         @endif
@@ -133,10 +133,8 @@ new class extends Component
 
                     <!-- ====== UPLOAD TAB PANEL ====== -->
                     <flux:tab.panel name="upload" class="pt-0">
-                        <div>
-                            <!-- Remove the old loader -->
-                            <flux:input id="photoInput" type="file" wire:model="photo"/>
-                            @error('photo') <span class="error">{{ $message }}</span> @enderror
+                        <div x-data="mediaUploader">
+                            <input type="file" x-ref="input" class="filepond">
                         </div>
                     </flux:tab.panel>
 
@@ -165,7 +163,7 @@ new class extends Component
 
                                         @if(Str::startsWith($media['mime_type'], 'image/'))
                                             <img
-                                                src="{{ Storage::disk()->url($media['path']) }}"
+                                                src="{{ Storage::url($media['path']) }}"
                                                 alt="{{ $media['name'] }}"
                                                 class="block w-full h-auto rounded"
                                             />
@@ -185,11 +183,28 @@ new class extends Component
             </div>
         @endif
     </div>
+
+    @push('scripts')
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('mediaUploader', () => ({
+                init() {
+                    this.$nextTick(() => {
+                        // Use this.$refs.input to get the specific input element for this instance
+                        FilePond.create(this.$refs.input, {
+                            server: {
+                                process: (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
+                                    this.$wire.upload('photo', file, load, error, progress)
+                                }
+                            },
+                            allowMultiple: false,
+                            acceptedFileTypes: ['image/*']
+                        });
+                    });
+                }
+            }));
+        });
+    </script>
+    @endpush
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const fileInput = document.getElementById('photoInput');
-    // Remove the loader related code since we're using wire:loading now
-});
-</script>

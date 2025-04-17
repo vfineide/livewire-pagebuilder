@@ -1,6 +1,7 @@
 <?php
 
 use Livewire\Volt\Component;
+use Livewire\Attributes\On;
 
 new class extends Component
 {
@@ -22,6 +23,7 @@ new class extends Component
         $this->section = [];
         $this->content = $content;
         $this->section = $content;
+        $this->index = $index;
         //dd($this->content);
 
         //$this->schema = $schema;
@@ -34,6 +36,20 @@ new class extends Component
         //dd($this->section);
         
         $this->dispatch('updateSectionContent', $this->index, $this->section);
+    }
+
+    public function handleMediaSelected($data)
+    {
+        $this->section[$this->name] = $data['media'];
+        $this->saveSection();
+    }
+
+    #[On('media-selected')]
+    public function onMediaSelected($data)
+    {
+        if ($data['fieldName'] === $this->name) {
+            $this->handleMediaSelected($data);
+        }
     }
 
 }
@@ -77,6 +93,14 @@ new class extends Component
 
     @case('textarea')
         <flux:textarea 
+                wire:model="section.{{ $name }}"
+            wire:keydown.debounce.500ms="saveSection"
+            label="{{ $schema['label'] }}"
+        />
+        @break
+
+    @case('richtext')
+        <flux:editor
                 wire:model="section.{{ $name }}"
             wire:keydown.debounce.500ms="saveSection"
             label="{{ $schema['label'] }}"

@@ -15,7 +15,6 @@ new class extends Component
 
     #[Validate('image|max:20024')] // 1MB Max
     public $photo;
-    public $photoPreview = null;
     public $library;
     public $selectedMediaIds = [];
     public $selectedMedia;
@@ -49,7 +48,6 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
     public function updatedPhoto()
     {
         if ($this->photo) {
-            $this->photoPreview = $this->photo->temporaryUrl();
             // After successful upload, we'll want to select the new media
             $this->save();
         }
@@ -114,8 +112,14 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
     {
         $this->selectedMediaIds = [];
         $this->selectedMedia = null;
-        $this->photoPreview = null;
         $this->photo = null;
+        
+
+        $this->dispatch('media-selected', [
+            'media' => [],
+            'fieldName' => $this->fieldName,
+            'blockIndex' => $this->blockIndex
+        ]);
     }
 
 };
@@ -126,24 +130,22 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
 
     <div class="media-library">
         <!-- Selected Media or Preview Display -->
-        @if($selectedMedia || $photoPreview)
+        @if($selectedMedia)
             <div class="relative rounded mb-4">
                 <button 
                     wire:click="unselectMedia" 
-                    class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full text-white transition-all"
+                    class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full text-white t sition-all"
                 >
                     ×
                 </button>
-                @if($selectedMedia)
                     <img src="{{ Storage::url($selectedMedia->path) }}" alt="Selected Media" class="w-full h-auto rounded"/>
-                @elseif($photoPreview)
-                    <img src="{{ $photoPreview }}" alt="Preview" class="w-full h-auto rounded"/>
-                @endif
+            
+        
             </div>
         @endif
 
         <!-- Main Media Library Content -->
-        @if(!$selectedMedia && !$photoPreview)
+        @if(!$selectedMedia) 
             <div class="media-library-content">
                 <flux:tab.group class="media-library-tabs">
                     <flux:tabs variant="segmented" wire:model="mediaTab">
@@ -153,7 +155,25 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
 
                     <!-- ====== UPLOAD TAB PANEL ====== -->
                     <flux:tab.panel name="upload" class="pt-0">
-                        <div x-data="mediaUploader">
+                        <div x-data="{ 
+                            init() {
+                                const input = this.$refs.input;
+                                const pond = FilePond.create(input, {
+                                    server: {
+                                        process: (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
+                                            this.$wire.upload('photo', file, load, error, progress)
+                                        }
+                                    },
+                                    allowMultiple: false,
+                                    acceptedFileTypes: ['image/*']
+                                });
+
+                                // Cleanup on component disconnect
+                                this.$cleanup = () => {
+                                    pond.destroy();
+                                };
+                            }
+                        }">
                             <input type="file" x-ref="input" class="filepond">
                         </div>
                     </flux:tab.panel>
@@ -173,6 +193,7 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
                                             break-inside-avoid
                                         "
                                         wire:click="selectMedia({{ $media['id'] }})"
+                                        wire:key="media-{{ $media->id }}"
                                         style="break-inside: avoid;"
                                     >
                                         @if(in_array($media['id'], $selectedMediaIds))
@@ -203,28 +224,5 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
             </div>
         @endif
     </div>
-
-    @push('scripts')
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('mediaUploader', () => ({
-                init() {
-                    this.$nextTick(() => {
-                        // Use this.$refs.input to get the specific input element for this instance
-                        FilePond.create(this.$refs.input, {
-                            server: {
-                                process: (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
-                                    this.$wire.upload('photo', file, load, error, progress)
-                                }
-                            },
-                            allowMultiple: false,
-                            acceptedFileTypes: ['image/*']
-                        });
-                    });
-                }
-            }));
-        });
-    </script>
-    @endpush
 </div>
 

@@ -25,7 +25,7 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
         if (!isset($buttons[$type])) {
             throw new \Exception("Unknown section type: {$type}");
         }
-
+ 
         $this->sections[] = [
             'id' => uniqid(),
             'name' => $name,
@@ -41,6 +41,8 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
         unset($this->sections[$index]);
         $this->sections = array_values($this->sections);
     }
+
+
 
     public function updateSectionContent($index, $content)
     {
@@ -70,14 +72,23 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
         $this->page->save();
     }
 
-    public function moveSection($oldIndex, $newIndex)
-    {
-        if ($oldIndex !== $newIndex) {
-            $section = $this->sections[$oldIndex];
-            array_splice($this->sections, $oldIndex, 1);
-            array_splice($this->sections, $newIndex, 0, [$section]);
-        }
-    }
+// In your PageBuilder component
+public function moveSection(array $items)
+{
+    // $items is an array like:
+    // [ ['value' => 'abc123', 'order' => 1], ['value' => 'def456', 'order' => 2], … ]
+
+    // Build a map: sectionId → newOrder
+    $orderMap = collect($items)->pluck('order', 'value');
+
+    // Reorder $this->sections by that map
+    $this->sections = collect($this->sections)
+        ->sortBy(fn($section) => $orderMap->get($section['id']))
+        ->values()
+        ->toArray();
+
+    $this->savePage();
+}
 
     public function getEditorButtons()
     {
@@ -126,12 +137,7 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
 
 
 
-
-
-<script src="
-https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js
-"></script>
-
+<script defer src="https://cdn.jsdelivr.net/gh/livewire/sortable@v1.x.x/dist/livewire-sortable.js"></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/filepond/4.32.6/filepond.js" integrity="sha512-9NomenG8ZkuctRQaDSN74Y0kyM2+1FGJTunuSfTFqif+vRrDZM2Ct0Ynp3CIbMNUQOWxd5RCyXexZzlz7KvUcw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/filepond/4.32.6/filepond.css" integrity="sha512-lBRULj1QwuG+xVoiKYx4nmB+CqtaTUs3J21JnY/GiDdYMRfX1i2pcRGbhkGF7hCZJz5e+rV4jjlmSYFIwZARsQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -165,7 +171,7 @@ https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filep
             <div class="mb-4 grid grid-cols-2 gap-2">
             
                 @foreach($this->getEditorButtons() as $type => $button)
-                    <button wire:click="addSection('{{ $type }}', '{{ $button['name'] }}')" class="bg-white border border-gray-300 hover:border-blue-500 text-gray-800 px-5 py-3 rounded-sm flex items-start gap-2">
+                    <button wire:key="add-section-{{ $type }}" wire:click="addSection('{{ $type }}', '{{ $button['name'] }}')" class="bg-white border border-gray-300 hover:border-blue-500 text-gray-800 px-5 py-3 rounded-sm flex items-start gap-2">
                        
                         @if($button['icon'])
                        <flux:icon icon="{{ $button['icon'] }}" class="w-6"></flux:icon>
@@ -182,37 +188,32 @@ https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filep
 
             <h2 class="text-sm text-gray-500 font-bold mb-2">Dine seksjoner</h2>
 
-            <div class="space-y-4" x-data="{
-                initSortable() {
-                    let el = document.getElementById('sections-list');
-                    Sortable.create(el, {
-                        handle: '.drag-handle',
-                        onEnd: (evt) => {
-                            @this.call('moveSection', evt.oldIndex, evt.newIndex);
-                        }
-                    });
-                }
-            }" x-init="initSortable">
-                <ul id="sections-list" class="space-y-1.5">
+            <div class="space-y-4">
+                <ul id="sections-list" wire:sortable="moveSection" class="space-y-1.5">
                     @foreach ($sections as $index => $section)
-                    <li wire:key="editor-{{ $section['id'] }}"  class="drag-handle cursor-move cursor-pointer bg-white p-3 rounded-sm shadow-sm border border-gray-100 hover:border-blue-500" x-data="{ isOpen: false }">
+                    <li 
+                    
+      wire:sortable.item="{{ $section['id'] }}" 
+      wire:key="editor-{{ $section['id'] }}"
+                    
+                    class="cursor-move cursor-pointer bg-white p-3 rounded-sm shadow-sm border border-gray-100 hover:border-blue-500" x-data="{ isOpen: false }">
                         <div @click="isOpen = !isOpen" class="flex gap-4 items-center">
-                            <div class=" text-gray-500">&#x2630;</div>
+                                 <span wire:sortable.handle class=" drag-handle  cursor-move mr-2">☰</span>
+
                             <h3 class="font-bold text-sm  select-none">{{ $section['name'] ?? $section['type'] }}</h3>
                         </div>
                         <div x-show="isOpen" class="mt-2 space-y-2">
 
                         @foreach($this->getEditorButtons()[$section['type']]['schema'] ?? [] as $name => $schema)
-
                     
                          <livewire:fields
                             :schema="$schema"
                             :index="$index"
                             :name="$name"
                             :content="$section['content']"
+                            :key="'fields-' . $section['id'] . '-' . $name"
 
                     
-                           wire:key="editor-{{ $section['id'] }}-{{ $index }} . {{ rand() }}"
                         />
 
                         @endforeach
@@ -268,14 +269,13 @@ https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filep
                 <!-- Preview Area -->
                 <div class="overflow-x-hidden overflow-y-scroll">
                     @foreach ($sections as $section)
-                    <div class="" wire:key="preview-{{ $loop->index }}">
-
+                    <div class="" wire:key="preview-{{ $section['id'] }}">
 
 
                         @livewire("{$section['namespace']}.{$section['type']}", [
                             'content' => $section['content'], 
                             'index' => $loop->index
-                        ], key("preview-child-{$section['id']}-".now()->timestamp))
+                        ], key("preview-child-{$section['id']}-"))
                     </div>
                     @endforeach
                 </div>
@@ -283,24 +283,4 @@ https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filep
         </div>
     </div>
 
-
-<script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('mediaUploader', () => ({
-            init() {
-                this.$nextTick(() => {
-                    FilePond.create(this.$refs.input, {
-                        server: {
-                            process: (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
-                                this.$wire.upload('photo', file, load, error, progress)
-                            }
-                        },
-                        allowMultiple: false,
-                        acceptedFileTypes: ['image/*']
-                    });
-                });
-            }
-        }));
-    });
-</script>
 </div>

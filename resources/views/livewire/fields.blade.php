@@ -38,28 +38,20 @@ new class extends Component
         $this->dispatch('updateSectionContent', $this->index, $this->section);
     }
 
-    public function handleMediaSelected($data)
-    {
-        $this->section[$this->name] = $data['media'];
-        $this->saveSection();
-    }
+
 
     #[On('media-selected')]
     public function onMediaSelected($data)
     {
         if ($data['fieldName'] === $this->name && $data['blockIndex'] === $this->index) {
-            $this->handleMediaSelected($data);
+            $this->section[$this->name] = $data['media'];
+            $this->saveSection();
         }
     }
 
 }
 ?>
 <div>
-
-
-<pre class="hidden">
-{{ print_r($schema) }}
-</pre>
 
 
 
@@ -69,7 +61,9 @@ new class extends Component
             wire:change="saveSection"
         >
             @foreach($schema['options'] as $option)
-                <flux:select.option value="{{ $option['value'] }}">
+                <flux:select.option value="{{ $option['value'] }}"
+                wire:key="option-{{ $index }}-{{ $name }}-{{ $option['value'] }}"
+                >
                     {{ $option['label'] }}
                 </flux:select.option>
             @endforeach
@@ -83,6 +77,7 @@ new class extends Component
             :blockIndex="$index"
             :fieldLabel="$schema['label']"
             :content="$section"
+            :key="'media-library-' . $index . '-' . $name"
         />
         @break
 
@@ -114,7 +109,10 @@ new class extends Component
         <div class="space-y-4">
             <div class="font-medium text-gray-700">{{ $schema['label'] }}</div>
             @foreach(data_get($this, $model) ?? [] as $index => $item)
-                <div class="bg-gray-50 p-4 rounded-lg relative group">
+                <div class="bg-gray-50 p-4 rounded-lg relative group"
+               wire:key="repeater-{{ $index }}-{{ $subField }}"
+                
+                >
                     <button wire:click="removeRepeaterItem('{{ $model }}', {{ $index }})"
                             class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded">
                         
@@ -125,6 +123,7 @@ new class extends Component
                             :schema="$subConfig"
                             :model="$model . '.' . $index . '.' . $subField"
                             :index="$index"
+                            :key="'repeater-subfield-{{ $index }}-{{ $subField }}'"
                         />
                     @endforeach
                 </div>
@@ -145,6 +144,7 @@ new class extends Component
                 :schema="$subConfig"
                 :model="$model . '.' . $index . '.' . $subField"
                 :index="$index"
+                :key="'group-{{ $index }}-{{ $subField }}'"
             />
         @endforeach
 

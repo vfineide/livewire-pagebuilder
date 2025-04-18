@@ -6,16 +6,13 @@ use Livewire\Attributes\On;
 new class extends Component
 {
 
-
     public $schema;
     public $index;
     public $content;
     public $model;
     public $values = [];
-
     public $section;
     public $name;
-
 
     public function mount($schema, $index, $name, $content)
     {
@@ -24,17 +21,10 @@ new class extends Component
         $this->content = $content;
         $this->section = $content;
         $this->index = $index;
-        //dd($this->content);
-
-        //$this->schema = $schema;
-        //$this->model = $model;
-        //$this->index = $index;
     }
 
     public function saveSection()
     {
-        //dd($this->section);
-        
         $this->dispatch('updateSectionContent', $this->index, $this->section);
     }
 
@@ -57,13 +47,9 @@ new class extends Component
 
 @switch($schema['type'])
     @case('select')
-        <flux:select wire:model="section.{{ $name }}" placeholder="{{ $schema['label'] }}"
-            wire:change="saveSection"
-        >
+        <flux:select wire:model="section.{{ $name }}" placeholder="{{ $schema['label'] }}" wire:change="saveSection">
             @foreach($schema['options'] as $option)
-                <flux:select.option value="{{ $option['value'] }}"
-                wire:key="option-{{ $index }}-{{ $name }}-{{ $option['value'] }}"
-                >
+                <flux:select.option value="{{ $option['value'] }}" wire:key="option-{{ $index }}-{{ $name }}-{{ $option['value'] }}">
                     {{ $option['label'] }}
                 </flux:select.option>
             @endforeach
@@ -83,26 +69,23 @@ new class extends Component
 
     @case('input')
         <flux:input 
-                wire:model="section.{{ $name }}"
+            wire:model="section.{{ $name }}"
             wire:keydown.debounce.500ms="saveSection"
-            label="{{ $schema['label'] }}"
-        />
+            label="{{ $schema['label'] }}"/>
         @break
 
     @case('textarea')
         <flux:textarea 
-                wire:model="section.{{ $name }}"
+            wire:model="section.{{ $name }}"
             wire:keydown.debounce.500ms="saveSection"
-            label="{{ $schema['label'] }}"
-        />
+            label="{{ $schema['label'] }}"/>
         @break
 
     @case('richtext')
         <flux:editor
-                wire:model="section.{{ $name }}"
+            wire:model="section.{{ $name }}"
             wire:keydown.debounce.500ms="saveSection"
-            label="{{ $schema['label'] }}"
-        />
+            label="{{ $schema['label'] }}"/>
         @break
 
     @case('repeater')
@@ -110,12 +93,9 @@ new class extends Component
             <div class="font-medium text-gray-700">{{ $schema['label'] }}</div>
             @foreach(data_get($this, $model) ?? [] as $index => $item)
                 <div class="bg-gray-50 p-4 rounded-lg relative group"
-               wire:key="repeater-{{ $index }}-{{ $subField }}"
-                
-                >
+               wire:key="repeater-{{ $index }}-{{ $subField }}">
                     <button wire:click="removeRepeaterItem('{{ $model }}', {{ $index }})"
                             class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded">
-                        
                     </button>
                     
                     @foreach($schema['fields'] as $subField => $subConfig)
@@ -123,16 +103,14 @@ new class extends Component
                             :schema="$subConfig"
                             :model="$model . '.' . $index . '.' . $subField"
                             :index="$index"
-                            :key="'repeater-subfield-{{ $index }}-{{ $subField }}'"
-                        />
+                            :key="'repeater-subfield-{{ $index }}-{{ $subField }}'"/>
                     @endforeach
                 </div>
             @endforeach
             
             <button wire:click="addRepeaterItem('{{ $model }}')"
                     class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                
-                Add {{ Str::singular($schema['label']) }}
+                    Add {{ Str::singular($schema['label']) }}
             </button>
         </div>
         @break
@@ -144,12 +122,10 @@ new class extends Component
                 :schema="$subConfig"
                 :model="$model . '.' . $index . '.' . $subField"
                 :index="$index"
-                :key="'group-{{ $index }}-{{ $subField }}'"
-            />
+                :key="'group-{{ $index }}-{{ $subField }}'"/>
         @endforeach
 
         @break
 @endswitch 
-
 
 </div>

@@ -275,7 +275,7 @@ https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filep
                         @livewire("{$section['namespace']}.{$section['type']}", [
                             'content' => $section['content'], 
                             'index' => $loop->index
-                        ], key("preview-child-{$section['id']}-"))
+                        ], key("preview-child-{$section['id']}-" . now()->timestamp))
                     </div>
                     @endforeach
                 </div>

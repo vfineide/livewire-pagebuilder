@@ -15,7 +15,16 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
     public function mount($id)
     {
         $this->page = Page::findOrFail($id);
-        $this->sections = $this->page->sections ?? [];
+       // $this->sections = $this->page->sections ?? [];
+           // 1) grab your buttons once
+    $this->editorButtons = $this->getEditorButtons();
+
+    // 2) grab your sections
+    $this->sections = collect($this->page->sections ?? [])->map(function($section) {
+        // and attach the schema upfront
+        $section['schema'] = $this->editorButtons[$section['type']]['schema'] ?? [];
+        return $section;
+    })->toArray();
     }
 
 
@@ -40,8 +49,8 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
     {
         unset($this->sections[$index]);
         $this->sections = array_values($this->sections);
+        $this->savePage();
     }
-
 
 
     public function updateSectionContent($index, $content)
@@ -75,13 +84,9 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
 // In your PageBuilder component
 public function moveSection(array $items)
 {
-    // $items is an array like:
-    // [ ['value' => 'abc123', 'order' => 1], ['value' => 'def456', 'order' => 2], … ]
 
-    // Build a map: sectionId → newOrder
     $orderMap = collect($items)->pluck('order', 'value');
 
-    // Reorder $this->sections by that map
     $this->sections = collect($this->sections)
         ->sortBy(fn($section) => $orderMap->get($section['id']))
         ->values()
@@ -136,15 +141,10 @@ public function moveSection(array $items)
 }">
 
 
-
 <script defer src="https://cdn.jsdelivr.net/gh/livewire/sortable@v1.x.x/dist/livewire-sortable.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/filepond/4.32.6/filepond.js" integrity="sha512-9NomenG8ZkuctRQaDSN74Y0kyM2+1FGJTunuSfTFqif+vRrDZM2Ct0Ynp3CIbMNUQOWxd5RCyXexZzlz7KvUcw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/filepond/4.32.6/filepond.css" integrity="sha512-lBRULj1QwuG+xVoiKYx4nmB+CqtaTUs3J21JnY/GiDdYMRfX1i2pcRGbhkGF7hCZJz5e+rV4jjlmSYFIwZARsQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
-<script src="
-https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filepond-plugin-file-validate-type.min.js
-"></script>
+<script src="https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filepond-plugin-file-validate-type.min.js"></script>
 
 
 <style>
@@ -156,20 +156,20 @@ https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filep
         display: none;
     }
 </style>
+
     <div class="flex">
         <!-- Editor Column (1/2) -->
         <div class="w-1/4 p-4 bg-gray-100 overflow-y-scroll h-screen space-y-4 flex flex-col">
 
             <div>
-            <flux:button variant="ghost" inset="left" href="/admin/pages">Tilbake</flux:button>
+            <flux:button variant="ghost" inset="left" href="/admin/pages">{{__('Back')}}</flux:button>
             </div>
-            <h2 class="text-xl font-bold mb-4">Sidebygger</h2>
+            <h2 class="text-xl font-bold mb-4">{{__('Page Builder')}}</h2>
 
 
-            <h2 class="text-sm text-gray-500 font-bold mb-2">Legg til seksjoner</h2>
+            <h2 class="text-sm text-gray-500 font-bold mb-2">{{__('Add sections')}}</h2>
 
             <div class="mb-4 grid grid-cols-2 gap-2">
-            
                 @foreach($this->getEditorButtons() as $type => $button)
                     <button wire:key="add-section-{{ $type }}" wire:click="addSection('{{ $type }}', '{{ $button['name'] }}')" class="bg-white border border-gray-300 hover:border-blue-500 text-gray-800 px-5 py-3 rounded-sm flex items-start gap-2">
                        
@@ -186,10 +186,14 @@ https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filep
             </div>
             
 
-            <h2 class="text-sm text-gray-500 font-bold mb-2">Dine seksjoner</h2>
+            <h2 class="text-sm text-gray-500 font-bold mb-2">{{__('Your sections')}}</h2>
 
             <div class="space-y-4">
                 <ul id="sections-list" wire:sortable="moveSection" class="space-y-1.5">
+                   
+                   
+                   
+                   
                     @foreach ($sections as $index => $section)
                     <li 
                     
@@ -197,31 +201,60 @@ https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filep
       wire:key="editor-{{ $section['id'] }}"
                     
                     class="cursor-move cursor-pointer bg-white p-3 rounded-sm shadow-sm border border-gray-100 hover:border-blue-500" x-data="{ isOpen: false }">
-                        <div @click="isOpen = !isOpen" class="flex gap-4 items-center">
-                                 <span wire:sortable.handle class=" drag-handle  cursor-move mr-2">☰</span>
+                        <div @click="isOpen = !isOpen" class="flex gap-4 items-center justify-between">
+                        <div class="flex gap-2 items-center">
+                            <span wire:sortable.handle class=" drag-handle  cursor-move mr-2 text-zinc-500">☰</span>
 
-                            <h3 class="font-bold text-sm  select-none">{{ $section['name'] ?? $section['type'] }}</h3>
+                            <input class="font-bold text-sm  select-none" wire:model.live="sections.{{ $index }}.name"/>
                         </div>
-                        <div x-show="isOpen" class="mt-2 space-y-2">
+                            <div class="text-zinc-500 transition-transform duration-200" :class="isOpen ? 'rotate-180' : 'rotate-0'">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                            </svg>
+
+                            </div>
+
+                        </div>
+                        <div 
+                            x-show="isOpen"
+                            x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="transform opacity-0 -translate-y-2"
+                            x-transition:enter-end="transform opacity-100 translate-y-0"
+                            x-transition:leave="transition ease-in duration-150"
+                            x-transition:leave-start="transform opacity-100 translate-y-0"
+                            x-transition:leave-end="transform opacity-0 -translate-y-2"
+                            class="mt-2 space-y-2"
+                        >
+  <div wire:ignore.self>
 
                         @foreach($this->getEditorButtons()[$section['type']]['schema'] ?? [] as $name => $schema)
-                    
-                         <livewire:fields
-                            :schema="$schema"
-                            :index="$index"
-                            :name="$name"
-                            :content="$section['content']"
-                            :key="'fields-' . $section['id'] . '-' . $name"
-
-                    
-                        />
-
-                        @endforeach
 
 
+<div 
 
-                            <div class="flex justify-between mt-2">
-                                <flux:button wire:click="removeSection({{ $index }})" variant="danger" size="sm">Slett</flux:button>
+                :key="'field-' . $section['id'] . '-' . $name"
+                wire:ignore
+>
+
+
+            <livewire:fields
+                :schema="$schema"
+                :index="$index"
+                :name="$name"
+                :content="$section['content']"
+                :key="'field-' . $section['id'] . '-' . $name"
+                
+                />
+
+
+</div>
+
+        @endforeach
+
+
+
+                            <div class="flex justify-between my-3">
+                                <flux:button wire:confirm="{{__('Are you sure you want to delete this section?')}}" wire:click="removeSection({{ $index }})" variant="danger" size="xs">{{__('Delete section')}}</flux:button>
                             </div>
                         </div>
                     </li>
@@ -230,7 +263,6 @@ https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filep
             </div>
             <flux:spacer></flux:spacer>
             <div class="grow">
-            <flux:button wire:click="savePage" class="w-full mt-1">Lagre rekkefølge</flux:button>
 
 
             
@@ -276,6 +308,7 @@ https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filep
                             'content' => $section['content'], 
                             'index' => $loop->index
                         ], key("preview-child-{$section['id']}-" . now()->timestamp))
+                        
                     </div>
                     @endforeach
                 </div>

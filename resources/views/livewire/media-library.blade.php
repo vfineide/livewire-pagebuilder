@@ -23,13 +23,15 @@ new class extends Component
     public $fieldLabel;
     public $blockIndex;
     public $content;
+    public $sectionId;
+    public $repeaterId;
 
     public $editedMedia;
     public $editedMediaAlt;
     public $editedMediaCaption;
     public $editedMediaName;
 
-public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel = null, $content = [])
+public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel = null, $content = [], $sectionId = null, $repeaterId = null)
 {
     $this->library = collect();
     $this->fieldName = last(explode('.', $model));
@@ -37,6 +39,8 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
 
     $this->blockIndex = $blockIndex;
     $this->fieldLabel = $fieldLabel;
+    $this->sectionId = $sectionId;
+    $this->repeaterId = $repeaterId;
 
     // If we have content for this field, show it as selected
     if (isset($content[$this->fieldName])) {
@@ -106,11 +110,16 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
             $this->selectedMediaIds[] = $id;
         }
 
-        // Include blockIndex in the dispatched data
+        // Dispatch with section and repeater IDs
         $this->dispatch('media-selected', [
-            'media' => $this->selectedMedia,
+            'media' => [
+                'id' => $this->selectedMedia->id,
+                'path' => $this->selectedMedia->path,
+                'name' => $this->selectedMedia->name
+            ],
             'fieldName' => $this->fieldName,
-            'blockIndex' => $this->blockIndex
+            'sectionId' => $this->sectionId,
+            'repeaterId' => $this->repeaterId
         ]);
 
     }
@@ -124,7 +133,8 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
         $this->dispatch('media-selected', [
             'media' => [],
             'fieldName' => $this->fieldName,
-            'blockIndex' => $this->blockIndex
+            'sectionId' => $this->sectionId,
+            'repeaterId' => $this->repeaterId
         ]);
     }
 
@@ -282,4 +292,3 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
 
 </flux:modal>
 </div>
-

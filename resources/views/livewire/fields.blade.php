@@ -16,7 +16,7 @@ new class extends Component
 
     public function mount($schema, $index, $name, $content)
     {
-        $this->name = $name;
+        $this->name = $schema['name'];
         $this->section = $content;
         $this->content = $content;
         $this->index = $index;
@@ -33,48 +33,46 @@ new class extends Component
     #[On('media-selected')]
     public function onMediaSelected($data)
     {
-
-
-        /*
-        if ($data['fieldName'] === $this->name && $data['blockIndex'] === $this->index) {
-            $this->section[$this->name] = $data['media'];
-            $this->saveSection();
-        }
-        */
-
-
-            
-        // For repeater fields, we need to handle the nested structure
-        if (str_contains($data['fieldName'], '.')) {
-            // Split the field name to get repeater item index and field name
-            [$repeaterIndex, $fieldName] = explode('.', $data['fieldName']);
-            
-            if (!isset($this->section[$this->name][$repeaterIndex]['fields'])) {
-                $this->section[$this->name][$repeaterIndex]['fields'] = [];
-            }
-            
-            $this->section[$this->name][$repeaterIndex]['fields'][$fieldName] = $data['media'];
+        if ($data['repeaterId']) {
+            // Handle repeater field media
+            $this->updateRepeaterFieldMedia($data);
         } else {
-            // Handle non-repeater fields as before
-            if ($data['fieldName'] === $this->name && $data['blockIndex'] === $this->index) {
-                $this->section[$this->name] = $data['media'];
-            }
+            // Handle regular field media
+            $this->updateRegularFieldMedia($data);
         }
         
         $this->saveSection();
+    }
 
-               // dd($data);
+    private function updateRepeaterFieldMedia($data)
+    {
+        // Find the repeater item by ID and update its media field
+        if (isset($this->section[$this->schema['name']])) {
+            foreach ($this->section[$this->schema['name']] as &$item) {
+                if ($item['id'] === $data['repeaterId']) {
+                    if (!isset($item['fields'])) {
+                        $item['fields'] = [];
+                    }
+                    $item['fields'][$data['fieldName']] = $data['media'];
+                    break;
+                }
+            }
+        }
+    }
 
-    
+    private function updateRegularFieldMedia($data)
+    {
+        // Update regular field media
+        $this->section[$this->schema['name']] = $data['media'];
     }
 
     public function addRepeaterItem()
     {
-        if (!isset($this->section[$this->name])) {
-            $this->section[$this->name] = [];
+        if (!isset($this->section[$this->schema['name']])) {
+            $this->section[$this->schema['name']] = [];
         }
         
-        $this->section[$this->name][] = [
+        $this->section[$this->schema['name']][] = [
             'id' => (string) \Illuminate\Support\Str::uuid(),
             'fields' => []
         ];
@@ -98,9 +96,16 @@ new class extends Component
 
 @switch($schema['type'])
     @case('select')
-        <flux:select wire:model="section.{{ $name }}" placeholder="{{ $schema['label'] }}" wire:change="saveSection">
+        <flux:select 
+            wire:model="section.{{ $schema['name'] }}" 
+            placeholder="{{ $schema['label'] }}" 
+            wire:change="saveSection"
+        >
             @foreach($schema['options'] as $option)
-                <flux:select.option value="{{ $option['value'] }}" wire:key="option-{{ $index }}-{{ $name }}-{{ $option['value'] }}">
+                <flux:select.option 
+                    value="{{ $option['value'] }}" 
+                    wire:key="option-{{ $index }}-{{ $schema['name'] }}-{{ $option['value'] }}"
+                >
                     {{ $option['label'] }}
                 </flux:select.option>
             @endforeach
@@ -108,53 +113,70 @@ new class extends Component
         @break
 
     @case('media')
-        <livewire:media-library 
-            model="section.{{ $name }}" 
-            :multiple="$schema['multiple'] ?? false"
-            :blockIndex="$index"
-            :fieldLabel="$schema['label']"
-            :content="$section"
-            :key="'media-library-' . $index . '-' . $name"
-        />
+        @if($schema['type'] === 'repeater')
+            <livewire:media-library 
+                model="section.{{ $schema['name'] }}.{{ $repeaterIndex }}.fields.{{ $field['name'] }}"
+                :multiple="$field['multiple'] ?? false"
+                :blockIndex="$index"
+                :fieldLabel="$field['label']"
+                :content="['fields' => [$field['name'] => $fieldValue]]"
+                :sectionId="$section['id'] ?? null"
+                :repeaterId="$item['id']"
+                :key="'media-library-' . $item['id'] . '-' . $field['name']"
+            />
+        @else
+            <livewire:media-library 
+                model="section.{{ $schema['name'] }}"
+                :multiple="$schema['multiple'] ?? false"
+                :blockIndex="$index"
+                :fieldLabel="$schema['label']"
+                :content="$section"
+                :sectionId="$section['id'] ?? null"
+                :key="'media-library-' . ($section['id'] ?? '') . '-' . $schema['name']"
+            />
+        @endif
         @break
 
     @case('input')
         <flux:input 
-            wire:model="section.{{ $name }}"
+            wire:model="section.{{ $schema['name'] }}"
             wire:keydown.debounce.500ms="saveSection"
-            label="{{ $schema['label'] }}"/>
+            label="{{ $schema['label'] }}"
+        />
         @break
 
     @case('textarea')
         <flux:textarea 
-            wire:model="section.{{ $name }}"
+            wire:model="section.{{ $schema['name'] }}"
             wire:keydown.debounce.500ms="saveSection"
-            label="{{ $schema['label'] }}"/>
+            label="{{ $schema['label'] }}"
+        />
         @break
 
     @case('richtext')
         <flux:editor
-            wire:model="section.{{ $name }}"
+            wire:model="section.{{ $schema['name'] }}"
             wire:keydown.debounce.500ms="saveSection"
-            label="{{ $schema['label'] }}"/>
+            label="{{ $schema['label'] }}"
+        />
         @break
 
       @case('repeater')
-        <div class="space-y-4" wire:key="repeater-wrapper-{{ $name }}">
+        <div class="space-y-4" wire:key="repeater-wrapper-{{ $schema['name'] }}">
             <div class="font-medium text-gray-700">{{ $schema['label'] }}</div>
-            @if(!isset($section[$name]))
-                @php $section[$name] = []; @endphp
+            @if(!isset($section[$schema['name']]))
+                @php $section[$schema['name']] = []; @endphp
             @endif
             
-            <div wire:key="repeater-items-{{ $name }}">
-                @foreach($section[$name] as $repeaterIndex => $item)
+            <div wire:key="repeater-items-{{ $schema['name'] }}">
+                @foreach($section[$schema['name']] as $repeaterIndex => $item)
                     <div 
                         class="bg-gray-50 p-4 rounded-lg relative group mb-4"
                         wire:key="repeater-item-{{ $item['id'] }}"
                     >
                         <button 
                             type="button"
-                            wire:click="removeRepeaterItem('{{ $name }}', {{ $repeaterIndex }})"
+                            wire:click="removeRepeaterItem('{{ $schema['name'] }}', {{ $repeaterIndex }})"
                             class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -163,40 +185,56 @@ new class extends Component
                         </button>
                         
                         <div wire:key="repeater-fields-{{ $item['id'] }}">
-                            @foreach($schema['fields'] as $fieldName => $fieldSchema)
-                                @switch($fieldSchema['type'])
+                            @foreach($schema['fields'] as $field)
+                                @php
+                                    $fieldValue = $item['fields'][$field['name']] ?? null;
+                                @endphp
+
+                                @switch($field['type'])
                                     @case('input')
                                         <flux:input 
-                                            wire:model="section.{{ $name }}.{{ $repeaterIndex }}.fields.{{ $fieldName }}"
+                                            wire:model="section.{{ $schema['name'] }}.{{ $repeaterIndex }}.fields.{{ $field['name'] }}"
                                             wire:change="saveSection"
-                                            label="{{ $fieldSchema['label'] }}"
+                                            label="{{ $field['label'] }}"
                                         />
                                         @break
 
                                     @case('textarea')
                                         <flux:textarea 
-                                            wire:model="section.{{ $name }}.{{ $repeaterIndex }}.fields.{{ $fieldName }}"
+                                            wire:model="section.{{ $schema['name'] }}.{{ $repeaterIndex }}.fields.{{ $field['name'] }}"
                                             wire:change="saveSection"
-                                            label="{{ $fieldSchema['label'] }}"
+                                            label="{{ $field['label'] }}"
+                                        />
+                                        @break
+
+                                    @case('richtext')
+                                        <flux:editor
+                                            wire:model="section.{{ $schema['name'] }}.{{ $repeaterIndex }}.fields.{{ $field['name'] }}"
+                                            wire:change="saveSection"
+                                            label="{{ $field['label'] }}"
                                         />
                                         @break
 
                                     @case('media')
-        <livewire:media-library 
-            model="section.{{ $name }}" 
-            :multiple="$schema['multiple'] ?? false"
-            :blockIndex="$index"
-            :fieldLabel="$schema['label']"
-            :content="$section"
-            :key="'media-library-' . $index . '-' . $name">
+                                        <livewire:media-library 
+                                            model="section.{{ $schema['name'] }}.{{ $repeaterIndex }}.fields.{{ $field['name'] }}"
+                                            :multiple="$field['multiple'] ?? false"
+                                            :blockIndex="$index"
+                                            :fieldLabel="$field['label']"
+                                            :content="['fields' => [$field['name'] => $fieldValue]]"
+                                            :sectionId="$section['id'] ?? null"
+                                            :repeaterId="$item['id']"
+                                            :key="'media-library-' . $item['id'] . '-' . $field['name']"
+                                        />
+                                        @break
 
                                     @default
                                         <livewire:fields 
-                                            :schema="$fieldSchema"
+                                            :schema="$field"
                                             :index="$repeaterIndex"
-                                            :name="$fieldName"
-                                            :content="$item['fields'] ?? []"
-                                            :key="'repeater-field-' . $item['id'] . '-' . $fieldName"
+                                            :name="$field['name']"
+                                            :content="['fields' => [$field['name'] => $fieldValue]]"
+                                            :key="'repeater-field-' . $item['id'] . '-' . $field['name']"
                                         />
                                 @endswitch
                             @endforeach

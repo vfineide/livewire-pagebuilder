@@ -212,16 +212,19 @@ new class extends Component
                                         @break
 
                                     @case('media')
-
-
-                                            <livewire:media-library 
-                                                :fieldName="$schema['name']"
-                                                :fieldLabel="$schema['label']"
-                                                :section="$section"
-                                                :multiple="$schema['multiple'] ?? false"
-                                                :key="'media-library-' . $section[$schema['name'] . '.meta']['id']"
-                                            />
-                                      
+                                        <livewire:media-library 
+                                            :fieldName="$field['name']"
+                                            :fieldLabel="$field['label']"
+                                            :section="[
+                                                $field['name'] => $fieldValue,
+                                                $field['name'] . '.meta' => $item['fields'][$field['name'] . '.meta'] ?? [
+                                                    'id' => (string) \Illuminate\Support\Str::uuid(),
+                                                    'createdAt' => now()->toDateTimeString()
+                                                ]
+                                            ]"
+                                            :multiple="$field['multiple'] ?? false"
+                                            :key="'media-library-' . ($item['fields'][$field['name'] . '.meta']['id'] ?? Str::uuid())"
+                                        />
                                         @break
 
                                     @default

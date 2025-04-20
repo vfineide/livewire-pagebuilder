@@ -14,6 +14,8 @@ new class extends Component
     public $section;
     public $name;
 
+    public $medias;
+
     public function mount($schema, $index, $name, $content)
     {
         $this->name = $schema['name'];
@@ -33,37 +35,35 @@ new class extends Component
     #[On('media-selected')]
     public function onMediaSelected($data)
     {
-        if ($data['repeaterId']) {
-            // Handle repeater field media
-            $this->updateRepeaterFieldMedia($data);
-        } else {
-            // Handle regular field media
-            $this->updateRegularFieldMedia($data);
-        }
-        
+        $this->updateMediaField($this->section, $data);
         $this->saveSection();
     }
 
-    private function updateRepeaterFieldMedia($data)
+    private function updateMediaField(&$content, $data)
     {
-        // Find the repeater item by ID and update its media field
-        if (isset($this->section[$this->schema['name']])) {
-            foreach ($this->section[$this->schema['name']] as &$item) {
-                if ($item['id'] === $data['repeaterId']) {
-                    if (!isset($item['fields'])) {
-                        $item['fields'] = [];
+        
+        // If this is an array, recursively search through it
+        if (is_array($content)) {
+            foreach ($content as $key => &$value) {
+                // Check if we found a meta field with matching ID
+                if (str_ends_with($key, '.meta') && isset($value['id']) && $value['id'] === $data['id']) {
+                    // Get the base field name by removing '.meta'
+                    $baseFieldName = substr($key, 0, -5);
+                    // Update the corresponding media field
+                    $content[$baseFieldName] = $data['media'];
+                    return true;
+                }
+                
+                // Recursively search nested arrays (like repeater fields)
+                if (is_array($value)) {
+                    if ($this->updateMediaField($value, $data)) {
+                        return true;
                     }
-                    $item['fields'][$data['fieldName']] = $data['media'];
-                    break;
                 }
             }
         }
-    }
-
-    private function updateRegularFieldMedia($data)
-    {
-        // Update regular field media
-        $this->section[$this->schema['name']] = $data['media'];
+        
+        return false;
     }
 
     public function addRepeaterItem()
@@ -72,10 +72,21 @@ new class extends Component
             $this->section[$this->schema['name']] = [];
         }
         
+        // Initialize fields with meta information
+        $fields = [];
+        foreach ($this->schema['fields'] as $field) {
+            $fields[$field['name']] = null;
+            $fields[$field['name'] . '.meta'] = [
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'createdAt' => now()->toDateTimeString()
+            ];
+        }
+        
         $this->section[$this->schema['name']][] = [
             'id' => (string) \Illuminate\Support\Str::uuid(),
-            'fields' => []
+            'fields' => $fields
         ];
+        
         $this->saveSection();
     }
 
@@ -113,28 +124,13 @@ new class extends Component
         @break
 
     @case('media')
-        @if($schema['type'] === 'repeater')
-            <livewire:media-library 
-                model="section.{{ $schema['name'] }}.{{ $repeaterIndex }}.fields.{{ $field['name'] }}"
-                :multiple="$field['multiple'] ?? false"
-                :blockIndex="$index"
-                :fieldLabel="$field['label']"
-                :content="['fields' => [$field['name'] => $fieldValue]]"
-                :sectionId="$section['id'] ?? null"
-                :repeaterId="$item['id']"
-                :key="'media-library-' . $item['id'] . '-' . $field['name']"
-            />
-        @else
-            <livewire:media-library 
-                model="section.{{ $schema['name'] }}"
-                :multiple="$schema['multiple'] ?? false"
-                :blockIndex="$index"
-                :fieldLabel="$schema['label']"
-                :content="$section"
-                :sectionId="$section['id'] ?? null"
-                :key="'media-library-' . ($section['id'] ?? '') . '-' . $schema['name']"
-            />
-        @endif
+        <livewire:media-library 
+            :fieldName="$schema['name']"
+            :fieldLabel="$schema['label']"
+            :section="$section"
+            :multiple="$schema['multiple'] ?? false"
+            :key="'media-library-' . $section[$schema['name'] . '.meta']['id']"
+        />
         @break
 
     @case('input')
@@ -216,16 +212,16 @@ new class extends Component
                                         @break
 
                                     @case('media')
-                                        <livewire:media-library 
-                                            model="section.{{ $schema['name'] }}.{{ $repeaterIndex }}.fields.{{ $field['name'] }}"
-                                            :multiple="$field['multiple'] ?? false"
-                                            :blockIndex="$index"
-                                            :fieldLabel="$field['label']"
-                                            :content="['fields' => [$field['name'] => $fieldValue]]"
-                                            :sectionId="$section['id'] ?? null"
-                                            :repeaterId="$item['id']"
-                                            :key="'media-library-' . $item['id'] . '-' . $field['name']"
-                                        />
+
+
+                                            <livewire:media-library 
+                                                :fieldName="$schema['name']"
+                                                :fieldLabel="$schema['label']"
+                                                :section="$section"
+                                                :multiple="$schema['multiple'] ?? false"
+                                                :key="'media-library-' . $section[$schema['name'] . '.meta']['id']"
+                                            />
+                                      
                                         @break
 
                                     @default

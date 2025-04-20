@@ -15,6 +15,7 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
     public function mount($id)
     {
         $this->page = Page::findOrFail($id);
+        //dd($this->page->sections);
        // $this->sections = $this->page->sections ?? [];
            // 1) grab your buttons once
     $this->editorButtons = $this->getEditorButtons();
@@ -34,15 +35,25 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
         if (!isset($buttons[$type])) {
             throw new \Exception("Unknown section type: {$type}");
         }
+
+        // Initialize content array with meta information for each field
+        $content = [];
+        foreach ($buttons[$type]['schema'] as $field) {
+            $content[$field['name']] = null;
+            $content[$field['name'] . '.meta'] = [
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'createdAt' => now()->toDateTimeString()
+            ];
+        }
  
         $this->sections[] = [
             'id' => uniqid(),
             'name' => $name,
             'type' => $type,
-            'content' => [],
-            'namespace' => $buttons[$type]['namespace']
+            'content' => $content,
+            'namespace' => $buttons[$type]['namespace'],
+            'schema' => $buttons[$type]['schema']
         ];
-       
     }
 
     public function removeSection($index)

@@ -21,30 +21,27 @@ new class extends Component
     public $mediaTab;
     public $fieldName;
     public $fieldLabel;
-    public $blockIndex;
-    public $content;
-    public $sectionId;
-    public $repeaterId;
+    public $section;
 
     public $editedMedia;
     public $editedMediaAlt;
     public $editedMediaCaption;
     public $editedMediaName;
+    public $id;
 
-public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel = null, $content = [], $sectionId = null, $repeaterId = null)
+public function mount($fieldName, $fieldLabel, $section, $multiple = false)
 {
     $this->library = collect();
-    $this->fieldName = last(explode('.', $model));
-    //$this->fieldName = str_replace('section.', '', $model); // Remove 'section.' prefix
-
-    $this->blockIndex = $blockIndex;
+    $this->fieldName = $fieldName;
     $this->fieldLabel = $fieldLabel;
-    $this->sectionId = $sectionId;
-    $this->repeaterId = $repeaterId;
+    $this->section = $section;
+
+    $this->id = $section[$this->fieldName . '.meta']['id'];
+
 
     // If we have content for this field, show it as selected
-    if (isset($content[$this->fieldName])) {
-        $mediaData = $content[$this->fieldName];
+    if (isset($section[$this->fieldName])) {
+        $mediaData = $section[$this->fieldName];
         if (is_array($mediaData) && isset($mediaData['id'])) {
             $media = Media::find($mediaData['id']);
             if ($media) {
@@ -117,9 +114,7 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
                 'path' => $this->selectedMedia->path,
                 'name' => $this->selectedMedia->name
             ],
-            'fieldName' => $this->fieldName,
-            'sectionId' => $this->sectionId,
-            'repeaterId' => $this->repeaterId
+            'id' => $this->id
         ]);
 
     }
@@ -132,16 +127,14 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
         
         $this->dispatch('media-selected', [
             'media' => [],
-            'fieldName' => $this->fieldName,
-            'sectionId' => $this->sectionId,
-            'repeaterId' => $this->repeaterId
+            'id' => $this->id
         ]);
     }
 
     public function editMedia()
     {
       $this->editedMediaName = $this->selectedMedia->name;
-      Flux::modal('media-single-modal-' . $this->blockIndex . '-' . $this->fieldName)->show();
+      Flux::modal('media-single-modal-' . $this->id)->show();
     }
     
 
@@ -149,7 +142,7 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
     {
         $this->selectedMedia->name = $this->editedMediaName;
         $this->selectedMedia->save();
-        Flux::modal('media-single-modal-{{ $blockIndex }}-{{ $fieldName }}')->close();
+        Flux::modal('media-single-modal-' . $this->id)->close();
     }
 
 };
@@ -275,7 +268,7 @@ public function mount($model, $multiple = false, $blockIndex = null, $fieldLabel
 
 
 
-<flux:modal name="media-single-modal-{{ $blockIndex }}-{{ $fieldName }}" class="w-3xl">
+<flux:modal name="media-single-modal-{{ $id }}" class="w-3xl">
 
 
 <flux:heading>Bildeinnstillinger</flux:heading>

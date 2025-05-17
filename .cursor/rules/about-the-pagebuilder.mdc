@@ -1,0 +1,168 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# About the Pagebuilder
+
+The Livewire Pagebuilder is a dynamic, component-based page building system that allows for flexible and intuitive page creation and management. It provides a user-friendly interface for building and customizing web pages through a drag-and-drop interface. It's a Laravel Packages that will be included in other projects. I can refer to the the Livewire Pagebuilder as "the package", and the other projects that includes this package, as "the project".
+
+## Key Features
+
+- **Component-Based Architecture**: Pages are built using reusable components (page blocks) that can be easily dragged, dropped, and configured
+- **Livewire Integration**: Built on top of Livewire for real-time updates and interactions
+- **Responsive Design**: Components automatically adapt to different screen sizes
+- **Customizable Layouts**: Flexible grid system for creating complex page layouts
+- **Real-time Preview**: See changes as you build with instant preview functionality
+
+## Core Concepts
+
+### blocks/components
+Components are the building blocks of pages. Each component represents a specific piece of functionality or content that can be added to a page. Components are written in Livewire, using Volt, meaning that the controller and the view is in the same file. Page blocks are not files inside the package but inside the project using the package. 
+
+When editing a page, json data is stored into $page->sections. The $page->sections is casted as array, and all array elements has an attribute called "name". The package looks through the filesystem of the project page, to find a block file with the same name (for example "hero1"(.blade.php)). When it finds it, hero1 defines both the input fields of the given block (input, textarea, image etc) and also the presentation.
+
+
+Below is an code example of a block called hero1.blade.php. 
+
+<?php
+use Livewire\Volt\Component;
+new class extends Component
+{
+
+    public $content = [];
+    public static $metadata = [
+        'name' => 'Hero',
+        'icon' => 'h1',
+        'category' => 'Basic',
+    ];
+
+    public $schema = [
+
+[
+    'type' => 'input',
+    'label' => 'Overskrift',
+    'icon' => 'h1',
+    'name' => 'title',
+],
+[
+    'type' => 'richtext',
+    'label' => 'Tekst',
+    'icon' => 'p',
+    'name' => 'text',
+],
+
+[
+    'type' => 'media',
+    'label' => 'Bilde',
+    'icon' => 'image',
+    'name' => 'image',
+],
+
+[
+    'type' => 'select',
+    'label' => 'Justering',
+    'name' => 'alignment',
+    'options' => [
+        ['value' => 'left', 'label' => 'Venstre'],
+        ['value' => 'center', 'label' => 'Sentrert'],
+        ['value' => 'right', 'label' => 'Høyre'],
+    ],
+],
+[
+    'type' => 'select',
+    'label' => 'Størrelse',
+    'name' => 'size',
+    'options' => [
+        ['value' => 'small', 'label' => 'Liten'],
+        ['value' => 'medium', 'label' => 'Medium'],
+        ['value' => 'large', 'label' => 'Stor'],
+    ],
+],
+
+];
+    
+};
+?>
+
+<section class="-mt-2 w-full  bg-[#fff5e4]">
+    <div class="max-w-6xl mx-auto px-6 sm:py-6">
+        <!-- Grid container with dynamic alignment -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-12 items-center {{ 
+            ($content['alignment'] ?? '') === 'center' ? 'text-center' : 
+            (($content['alignment'] ?? '') === 'right' ? 'lg:grid-flow-dense' : '') 
+        }}">
+            <!-- Text Content -->
+            <div class="col-span-3 space-y-6 {{ empty($content['image']) ? 'lg:col-span-2 max-w-3xl mx-auto' : '' }} {{
+                ($content['alignment'] ?? '') === 'right' ? 'lg:col-start-2' : ''
+            }}">
+
+            <div class="mb-2 inline-flex gap-1 text-sm rounded-full border border-yellow-300 bg-yellow-300 text-slate-800 font-medium px-3 py-1"><span class="underline">Gratis</span> sammenligningstjeneste for minilagre i hele Norge</span></div>
+                @if(!empty($content['title']))
+                    <h1 class="text-2xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
+                        {{ $content['title'] }}
+                    </h1>
+                @endif
+                
+                @if(!empty($content['text']))
+                    <div class="prose prose-lg dark:prose-invert max-w-none">
+                        {!! $content['text'] !!}
+                    </div>
+                @endif
+            </div>
+
+            <!-- Image -->
+            @if(!empty($content['image']))
+                @php
+                    $imageData = match(true) {
+                        is_array($content['image']) => (object) $content['image'],
+                        is_object($content['image']) => $content['image'],
+                        is_string($content['image']) => (object) ['path' => $content['image']],
+                        default => null
+                    };
+
+                    // Define image sizes based on the size selection with default
+                    $imageSize = match($content['size'] ?? 'medium') {
+                        'small' => 'max-h-[300px] lg:max-h-[400px]',
+                        'large' => 'max-h-[600px] lg:max-h-[800px]',
+                        default => 'max-h-[400px] lg:max-h-[600px]',
+                    };
+                @endphp
+
+                @if($imageData && !empty($imageData->path))
+                    <div class="col-span-2 {{ ($content['alignment'] ?? '') === 'right' ? 'lg:col-start-1' : '' }}">
+                        <div class="relative rounded-md overflow-hidden  {{ 
+                            ($content['alignment'] ?? '') === 'center' ? 'mx-auto' : '' 
+                        }}">
+                            <img 
+                                src="{{ Storage::url($imageData->path) }}" 
+                                alt="{{ $imageData->alt ?? '' }}"
+                                class="w-full object-cover h-[470px] {{ $imageSize }}"
+                                loading="lazy"
+                          
+                            >
+                            
+                            @if(!empty($content['caption']))
+                                <div class="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-sm text-white p-3 text-sm">
+                                    {{ $content['caption'] }}
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+            @endif
+        </div>
+    </div>
+
+    <!-- Optional decorative elements -->
+    <div class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80" aria-hidden="true">
+        <div class="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-primary-200 to-primary-400 opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
+    </div>
+</section>
+
+### Layouts
+Layouts define the structure of a page, including how components are arranged and how they respond to different screen sizes.
+
+### Templates
+Templates provide pre-built page structures that can be used as starting points for new pages.
+

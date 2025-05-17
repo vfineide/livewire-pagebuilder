@@ -27,10 +27,15 @@ new class extends Component
 
     public function saveSection()
     {
+        // Ensure we have the latest content before dispatching
         $this->dispatch('updateSectionContent', $this->index, $this->section);
     }
 
-
+    public function updatedSection($value, $key)
+    {
+        // When any section value is updated, save it immediately
+        $this->saveSection();
+    }
 
     #[On('media-selected')]
     public function onMediaSelected($data)
@@ -110,7 +115,7 @@ new class extends Component
         <flux:select 
             wire:model="section.{{ $schema['name'] }}" 
             placeholder="{{ $schema['label'] }}" 
-            wire:change="saveSection"
+            wire:blur="saveSection"
         >
             @foreach($schema['options'] as $option)
                 <flux:select.option 
@@ -136,15 +141,16 @@ new class extends Component
     @case('input')
         <flux:input 
             wire:model="section.{{ $schema['name'] }}"
-            wire:keydown.debounce.500ms="saveSection"
+            wire:blur="saveSection"
             label="{{ $schema['label'] }}"
         />
         @break
 
+
     @case('textarea')
         <flux:textarea 
             wire:model="section.{{ $schema['name'] }}"
-            wire:keydown.debounce.500ms="saveSection"
+            wire:blur="saveSection"
             label="{{ $schema['label'] }}"
         />
         @break
@@ -152,7 +158,7 @@ new class extends Component
     @case('richtext')
         <flux:editor
             wire:model="section.{{ $schema['name'] }}"
-            wire:keydown.debounce.500ms="saveSection"
+            wire:blur="saveSection"
             label="{{ $schema['label'] }}"
         />
         @break

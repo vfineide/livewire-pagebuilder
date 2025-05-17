@@ -78,9 +78,15 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
             return $value;
         })->toArray();
 
+        // Ensure we preserve existing content while updating
+        $existingContent = $this->sections[$index]['content'] ?? [];
+        
+        // Merge the new content with existing content, preserving all fields
         $this->sections[$index]['content'] = array_merge(
-            $this->sections[$index]['content'] ?? [],
-            $processedContent
+            $existingContent,
+            array_filter($processedContent, function($value) {
+                return $value !== null;
+            })
         );
         
         $this->savePage();
@@ -88,8 +94,10 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
 
     public function savePage()
     {
+       // dd($this->sections);
         $this->page->sections = $this->sections;
         $this->page->save();
+       /// dd($this->page->sections);
     }
 
 // In your PageBuilder component
@@ -245,7 +253,7 @@ public function moveSection(array $items)
 
                 :key="'field-' . $section['id'] . '-' . $name"
                 wire:ignore
->
+                class="my-4">
 
 
             <livewire:fields
@@ -276,7 +284,7 @@ public function moveSection(array $items)
             <div class="grow">
 
 
-            
+            add a simple contact form:  
 
         </div>
         </div>

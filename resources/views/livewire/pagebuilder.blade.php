@@ -10,7 +10,7 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
 {
     public $page;
     public $sections = [];
-    public $listeners = ['updateSectionContent', 'selectedMedia'];
+    public $listeners = ['updateSectionContent', 'updateSectionField', 'selectedMedia'];
 
     public function mount($id)
     {
@@ -89,6 +89,27 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
             })
         );
         
+        $this->savePage();
+    }
+
+    public function updateSectionField($data)
+    {
+        $sectionIndex = $data['sectionIndex'];
+        $fieldId = $data['fieldId'];
+        $fieldName = $data['fieldName'];
+        $content = $data['content'];
+
+        // Ensure the section exists
+        if (!isset($this->sections[$sectionIndex])) {
+            return;
+        }
+
+        // Update only the specific field
+        $this->sections[$sectionIndex]['content'] = array_merge(
+            $this->sections[$sectionIndex]['content'] ?? [],
+            $content
+        );
+
         $this->savePage();
     }
 

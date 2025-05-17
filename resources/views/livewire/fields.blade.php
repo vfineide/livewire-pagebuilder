@@ -23,6 +23,14 @@ new class extends Component
         $this->content = $content;
         $this->index = $index;
         $this->schema = $schema;
+
+        // Ensure we have a meta ID for this field
+        if (!isset($this->section[$this->name . '.meta'])) {
+            $this->section[$this->name . '.meta'] = [
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'createdAt' => now()->toDateTimeString()
+            ];
+        }
     }
 
     public function saveSection()
@@ -31,10 +39,35 @@ new class extends Component
         $this->dispatch('updateSectionContent', $this->index, $this->section);
     }
 
+    public function saveField($value)
+    {
+        // Get the field's meta ID
+        $fieldId = $this->section[$this->name . '.meta']['id'];
+        
+        // Create a minimal update object with just this field
+        $update = [
+            $this->name => $value,
+            $this->name . '.meta' => [
+                'id' => $fieldId,
+                'updatedAt' => now()->toDateTimeString()
+            ]
+        ];
+
+        // Dispatch the update with the field ID for tracking
+        $this->dispatch('updateSectionField', [
+            'sectionIndex' => $this->index,
+            'fieldId' => $fieldId,
+            'fieldName' => $this->name,
+            'content' => $update
+        ]);
+    }
+
     public function updatedSection($value, $key)
     {
-        // When any section value is updated, save it immediately
-        $this->saveSection();
+        // When a section value is updated, save just that field
+        if ($key === $this->name) {
+            $this->saveField($value);
+        }
     }
 
     #[On('media-selected')]
@@ -113,9 +146,9 @@ new class extends Component
 @switch($schema['type'])
     @case('select')
         <flux:select 
-            wire:model="section.{{ $schema['name'] }}" 
+            wire:model.live="section.{{ $schema['name'] }}" 
             placeholder="{{ $schema['label'] }}" 
-            wire:blur="saveSection"
+            wire:change="saveField($event.target.value)"
         >
             @foreach($schema['options'] as $option)
                 <flux:select.option 
@@ -140,8 +173,8 @@ new class extends Component
 
     @case('input')
         <flux:input 
-            wire:model="section.{{ $schema['name'] }}"
-            wire:blur="saveSection"
+            wire:model.live="section.{{ $schema['name'] }}"
+            wire:change="saveField($event.target.value)"
             label="{{ $schema['label'] }}"
         />
         @break
@@ -149,16 +182,16 @@ new class extends Component
 
     @case('textarea')
         <flux:textarea 
-            wire:model="section.{{ $schema['name'] }}"
-            wire:blur="saveSection"
+            wire:model.live="section.{{ $schema['name'] }}"
+            wire:change="saveField($event.target.value)"
             label="{{ $schema['label'] }}"
         />
         @break
 
     @case('richtext')
         <flux:editor
-            wire:model="section.{{ $schema['name'] }}"
-            wire:blur="saveSection"
+            wire:model.live="section.{{ $schema['name'] }}"
+            wire:change="saveField($event.target.value)"
             label="{{ $schema['label'] }}"
         />
         @break

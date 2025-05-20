@@ -36,8 +36,15 @@ public function mount($fieldName, $fieldLabel, $section, $multiple = false)
     $this->fieldLabel = $fieldLabel;
     $this->section = $section;
 
-    $this->id = $section[$this->fieldName . '.meta']['id'];
+    // Ensure we have a meta ID for this field
+    if (!isset($this->section[$this->fieldName . '.meta'])) { 
+        $this->section[$this->fieldName . '.meta'] = [
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'createdAt' => now()->toDateTimeString()
+        ];
+    }
 
+    $this->id = $this->section[$this->fieldName . '.meta']['id'];
 
     // If we have content for this field, show it as selected
     if (isset($section[$this->fieldName])) {
@@ -103,20 +110,20 @@ public function mount($fieldName, $fieldLabel, $section, $multiple = false)
 
         if (in_array($id, $this->selectedMediaIds)) {
             $this->selectedMediaIds = array_diff($this->selectedMediaIds, [$id]);
+            $this->selectedMedia = null;
         } else {
-            $this->selectedMediaIds[] = $id;
+            $this->selectedMediaIds = [$id];
         }
 
         // Dispatch with section and repeater IDs
         $this->dispatch('media-selected', [
-            'media' => [
+            'media' => $this->selectedMedia ? [
                 'id' => $this->selectedMedia->id,
                 'path' => $this->selectedMedia->path,
                 'name' => $this->selectedMedia->name
-            ],
+            ] : [],
             'id' => $this->id
         ]);
-
     }
 
     public function unselectMedia()

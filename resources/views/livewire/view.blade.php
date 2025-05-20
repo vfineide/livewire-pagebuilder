@@ -106,7 +106,7 @@ new Class extends Component
 <div  x-data="{ 
     sections: @entangle('sections'), 
     previewMode: 'desktop'
-}">
+}" class="@container">
 
     @foreach ($sections as $section)
     <div class="" wire:key="preview-{{ $loop->index }}">

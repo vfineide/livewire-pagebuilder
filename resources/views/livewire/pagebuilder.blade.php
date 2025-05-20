@@ -124,7 +124,6 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
 // In your PageBuilder component
 public function moveSection(array $items)
 {
-
     $orderMap = collect($items)->pluck('order', 'value');
 
     $this->sections = collect($this->sections)
@@ -134,6 +133,36 @@ public function moveSection(array $items)
 
     $this->savePage();
 }
+
+    public function duplicateSection($index)
+    {
+        if (!isset($this->sections[$index])) {
+            return;
+        }
+
+        $section = $this->sections[$index];
+        
+        // Create a deep copy of the section
+        $duplicatedSection = $section;
+        
+        // Generate new ID for the section
+        $duplicatedSection['id'] = uniqid();
+        
+        // Generate new UUIDs for all content fields
+        if (isset($duplicatedSection['content'])) {
+            foreach ($duplicatedSection['content'] as $key => $value) {
+                if (str_ends_with($key, '.meta') && isset($value['id'])) {
+                    $duplicatedSection['content'][$key]['id'] = (string) \Illuminate\Support\Str::uuid();
+                    $duplicatedSection['content'][$key]['createdAt'] = now()->toDateTimeString();
+                }
+            }
+        }
+
+        // Insert the duplicated section after the original
+        array_splice($this->sections, $index + 1, 0, [$duplicatedSection]);
+        
+        $this->savePage();
+    }
 
     public function getEditorButtons()
     {
@@ -178,10 +207,14 @@ public function moveSection(array $items)
 <div  x-data="{ 
     sections: @entangle('sections'), 
     previewMode: 'desktop'
-}">
+}" x-init="
+    $store.sectionOrders = new Map();
+    sections.forEach((section, index) => {
+        $store.sectionOrders.set(section.id, index);
+    });
+">
 
 
-<script defer src="https://cdn.jsdelivr.net/gh/livewire/sortable@v1.x.x/dist/livewire-sortable.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/filepond/4.32.6/filepond.js" integrity="sha512-9NomenG8ZkuctRQaDSN74Y0kyM2+1FGJTunuSfTFqif+vRrDZM2Ct0Ynp3CIbMNUQOWxd5RCyXexZzlz7KvUcw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/filepond/4.32.6/filepond.css" integrity="sha512-lBRULj1QwuG+xVoiKYx4nmB+CqtaTUs3J21JnY/GiDdYMRfX1i2pcRGbhkGF7hCZJz5e+rV4jjlmSYFIwZARsQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <script src="https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filepond-plugin-file-validate-type.min.js"></script>
@@ -195,6 +228,10 @@ public function moveSection(array $items)
     #flux-sidebar {
         display: none;
     }
+
+    .section-item {
+        order: var(--section-order, 0);
+    }
 </style>
 
     <div class="flex">
@@ -207,7 +244,7 @@ public function moveSection(array $items)
             <h2 class="text-xl font-bold mb-4">{{__('Page Builder')}}</h2>
 
 
-            <h2 class="text-sm text-gray-500 font-bold mb-2">{{__('Add sections')}}</h2>
+            <h2 class="text-sm text-gray-500 font-bold mb-2">{{__('Add sections...')}}</h2>
 
             <div class="mb-4 grid grid-cols-2 gap-2">
                 @foreach($this->getEditorButtons() as $type => $button)
@@ -229,23 +266,37 @@ public function moveSection(array $items)
             <h2 class="text-sm text-gray-500 font-bold mb-2">{{__('Your sections')}}</h2>
 
             <div class="space-y-4">
-                <ul id="sections-list" wire:sortable="moveSection" class="space-y-1.5">
-                   
-                   
-                   
-                   
+                <ul class="space-y-1.5 flex flex-col">
                     @foreach ($sections as $index => $section)
                     <li 
-                    
-      wire:sortable.item="{{ $section['id'] }}" 
-      wire:key="editor-{{ $section['id'] }}"
-                    
-                    class="cursor-move cursor-pointer bg-white p-3 rounded-sm shadow-sm border border-gray-100 hover:border-blue-500" x-data="{ isOpen: false }">
+                        x-data="{ 
+                            isOpen: false,
+                            order: $store.sectionOrders.get('{{ $section['id'] }}') || {{ $index }}
+                        }"
+                        :style="{ '--section-order': $store.sectionOrders.get('{{ $section['id'] }}') || {{ $index }} }"
+                        class="section-item cursor-pointer bg-white p-3 rounded-sm shadow-sm border border-gray-100 hover:border-blue-500">
                         <div @click="isOpen = !isOpen" class="flex gap-4 items-center justify-between">
                         <div class="flex gap-2 items-center">
-                            <span wire:sortable.handle class=" drag-handle  cursor-move mr-2 text-zinc-500">☰</span>
+                            <div class="flex flex-col">
+                                <button @click.stop="
+                                    const currentOrder = $store.sectionOrders.get('{{ $section['id'] }}');
+                                    $store.sectionOrders.set('{{ $section['id'] }}', currentOrder - 1);
+                                " class="text-zinc-500 hover:text-blue-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+                                    </svg>
+                                </button>
+                                <button @click.stop="
+                                    const currentOrder = $store.sectionOrders.get('{{ $section['id'] }}');
+                                    $store.sectionOrders.set('{{ $section['id'] }}', currentOrder + 1);
+                                " class="text-zinc-500 hover:text-blue-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                                    </svg>
+                                </button>
+                            </div>
 
-                            <input class="font-bold text-sm  select-none" wire:model.live="sections.{{ $index }}.name"/>
+                            <input class="font-bold text-sm select-none" wire:model.live="sections.{{ $index }}.name"/>
                         </div>
                             <div class="text-zinc-500 transition-transform duration-200" :class="isOpen ? 'rotate-180' : 'rotate-0'">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
@@ -294,7 +345,10 @@ public function moveSection(array $items)
 
 
                             <div class="flex justify-between my-3">
-                                <flux:button wire:confirm="{{__('Are you sure you want to delete this section?')}}" wire:click="removeSection({{ $index }})" variant="danger" size="xs">{{__('Delete section')}}</flux:button>
+                                <div class="flex gap-2">
+                                    <flux:button wire:click="duplicateSection({{ $index }})"  size="xs">{{__('Duplicate')}}</flux:button>
+                                    <flux:button wire:confirm="{{__('Are you sure you want to delete this section?')}}" wire:click="removeSection({{ $index }})" variant="danger" size="xs">{{__('Delete section')}}</flux:button>
+                                </div>
                             </div>
                         </div>
                     </li>
@@ -303,9 +357,6 @@ public function moveSection(array $items)
             </div>
             <flux:spacer></flux:spacer>
             <div class="grow">
-
-
-            add a simple contact form:  
 
         </div>
         </div>
@@ -326,9 +377,7 @@ public function moveSection(array $items)
 </flux:button.group>
 </div>
             <!-- Browser Frame -->
-            <div class="w-full rounded-md border shadow-lg  h-[90vh] overflow-y-scroll" :class="previewMode === 'mobile' ? 'max-w-xs mx-auto' : 'w-full'">
-
-
+            <div class="w-full rounded-md border shadow-lg h-[90vh] overflow-y-scroll @container" :class="previewMode === 'mobile' ? 'max-w-[390px] mx-auto' : 'w-full'">
                 <!-- Browser Title Bar -->
                 <div class="bg-gray-100 p-2 flex items-center justify-between border-b">
                     <div class="flex items-center space-x-2">
@@ -341,14 +390,11 @@ public function moveSection(array $items)
                 <!-- Preview Area -->
                 <div class="overflow-x-hidden overflow-y-scroll">
                     @foreach ($sections as $section)
-                    <div class="" wire:key="preview-{{ $section['id'] }}">
-
-
+                    <div wire:key="preview-{{ $section['id'] }}">
                         @livewire("{$section['namespace']}.{$section['type']}", [
                             'content' => $section['content'], 
                             'index' => $loop->index
                         ], key("preview-child-{$section['id']}-" . now()->timestamp))
-                        
                     </div>
                     @endforeach
                 </div>

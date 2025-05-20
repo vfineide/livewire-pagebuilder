@@ -146,9 +146,9 @@ new class extends Component
 @switch($schema['type'])
     @case('select')
         <flux:select 
-            wire:model.live="section.{{ $schema['name'] }}" 
+            wire:model="section.{{ $schema['name'] }}" 
             placeholder="{{ $schema['label'] }}" 
-            wire:change="saveField($event.target.value)"
+            wire:blur="saveField($event.target.value)"
         >
             @foreach($schema['options'] as $option)
                 <flux:select.option 
@@ -173,25 +173,24 @@ new class extends Component
 
     @case('input')
         <flux:input 
-            wire:model.live="section.{{ $schema['name'] }}"
-            wire:change="saveField($event.target.value)"
+            wire:model="section.{{ $schema['name'] }}"
+            wire:blur="saveField($event.target.value)"
             label="{{ $schema['label'] }}"
         />
         @break
 
-
     @case('textarea')
         <flux:textarea 
-            wire:model.live="section.{{ $schema['name'] }}"
-            wire:change="saveField($event.target.value)"
+            wire:model="section.{{ $schema['name'] }}"
+            wire:blur="saveField($event.target.value)"
             label="{{ $schema['label'] }}"
         />
         @break
 
     @case('richtext')
         <flux:editor
-            wire:model.live="section.{{ $schema['name'] }}"
-            wire:change="saveField($event.target.value)"
+            wire:model="section.{{ $schema['name'] }}"
+            wire:blur="saveField($event.target.value)"
             label="{{ $schema['label'] }}"
         />
         @break

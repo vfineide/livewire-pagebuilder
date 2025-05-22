@@ -172,6 +172,7 @@ new class extends Component
         @break
 
     @case('input')
+    
         <flux:input 
             wire:model="section.{{ $schema['name'] }}"
             wire:blur="saveField($event.target.value)"
@@ -218,14 +219,16 @@ new class extends Component
                             </svg>
                         </button>
                         
-                        <div wire:key="repeater-fields-{{ $item['id'] }}">
+                        <div class="space-y-4" wire:key="repeater-fields-{{ $item['id'] }}">
                             @foreach($schema['fields'] as $field)
                                 @php
                                     $fieldValue = $item['fields'][$field['name']] ?? null;
                                 @endphp
 
                                 @switch($field['type'])
+                                
                                     @case('input')
+                                    
                                         <flux:input 
                                             wire:model="section.{{ $schema['name'] }}.{{ $repeaterIndex }}.fields.{{ $field['name'] }}"
                                             wire:change="saveSection"

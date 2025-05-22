@@ -244,7 +244,7 @@ public function moveSection(array $items)
             <h2 class="text-xl font-bold mb-4">{{__('Page Builder')}}</h2>
 
 
-            <h2 class="text-sm text-gray-500 font-bold mb-2">{{__('Add sections...')}}</h2>
+            <h2 class="text-sm text-gray-500 font-bold mb-2">{{__('Add sections')}}</h2>
 
             <div class="mb-4 grid grid-cols-2 gap-2">
                 @foreach($this->getEditorButtons() as $type => $button)

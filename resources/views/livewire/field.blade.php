@@ -33,6 +33,7 @@ new class extends Component
         @break
 
     @case('input')
+    
         <flux:input 
             wire:model="{{ $wireModel }}"
             wire:keydown.debounce.500ms="saveSection"
@@ -52,11 +53,13 @@ new class extends Component
         <div class="space-y-4">
             <div class="font-medium text-gray-700">{{ $config['label'] }}</div>
             @foreach(data_get($this, $wireModel) ?? [] as $index => $item)
-                <div class="bg-gray-50 p-4 rounded-lg relative group">
+                <div class="bg-gray-50 space-y-4 p-4 rounded-lg relative group">
                     <button wire:click="removeRepeaterItem('{{ $wireModel }}', {{ $index }})"
                             class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded">
                         
                     </button>
+                    
+            
                     
                     @foreach($config['fields'] as $subField => $subConfig)
                         <x-field 
@@ -64,7 +67,9 @@ new class extends Component
                             :config="$subConfig"
                             :wire-model="$wireModel . '.' . $index . '.' . $subField"
                         />
+           
                     @endforeach
+                    
                 </div>
             @endforeach
             

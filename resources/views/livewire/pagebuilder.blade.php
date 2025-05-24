@@ -193,6 +193,7 @@ public function moveSection($fromIndex, $toIndex)
 
             foreach ($files as $file) {
                 $content = file_get_contents($file->getPathname());
+          
                 $type = str_replace('.blade.php', '', $file->getFilename());
                 
                 // Extract both metadata and schema
@@ -208,6 +209,12 @@ public function moveSection($fromIndex, $toIndex)
         }
 
         return $buttons;
+    }
+
+    public function blockExists($type)
+    {
+        $path = resource_path('views/livewire/blocks/' . $type . '.blade.php');
+        return File::exists($path);
     }
 }; ?>
 
@@ -254,15 +261,19 @@ public function moveSection($fromIndex, $toIndex)
 
             <h2 class="text-sm text-gray-500 font-bold mb-2">{{__('Add sections')}}</h2>
 
-            <div class="mb-4 grid grid-cols-2 gap-2" >
+            <div class="mb-4 grid grid-cols-2 gap-1" >
                 @foreach($this->getEditorButtons() as $type => $button)
-                    <button wire:key="add-section-{{ $type }}" wire:click="addSection('{{ $type }}', '{{ $button['name'] }}')" class="bg-white border border-gray-300 hover:border-blue-500 text-gray-800 px-5 py-3 rounded-sm flex items-start gap-2">
+                    <button wire:key="add-section-{{ $type }}" wire:click="addSection('{{ $type }}', '{{ $button['name'] }}')" class="cursor-pointer bg-white border border-gray-300 hover:border-blue-500 text-gray-800 px-5 py-3 rounded-xs flex items-start gap-2">
                        
+
+                       {{-- 
                         @if($button['icon'])
                        <flux:icon icon="{{ $button['icon'] }}" class="w-6"></flux:icon>
                        @else
                        <flux:icon icon="stop" class="size-8"></flux:icon>
                        @endif
+
+                       --}}
 
                           
                        <div class="text-sm text-left"> {{ $button['name'] }}</div>
@@ -284,11 +295,11 @@ public function moveSection($fromIndex, $toIndex)
                         class="section-item cursor-pointer bg-white p-3 rounded-sm shadow-sm border border-gray-100 hover:border-blue-500">
                         <div @click="isOpen = !isOpen" class="flex gap-4 items-center justify-between">
                         <div class="flex gap-2 items-center">
-                            <div class="flex flex-col">
+                            <div class="flex flex-col -ml-1.5">
                                 <button @click.stop="$wire.moveSection({{ $index }}, {{ $index - 1 }})" 
                                     :class="{ 'opacity-50 cursor-not-allowed hidden': {{ $index }} === 0 }"
                                     :disabled="{{ $index }} === 0"
-                                    class="text-zinc-500 hover:text-blue-500">
+                                    class="cursor-pointer text-zinc-500 p-0.5 rounded hover:text-black hover:bg-zinc-100">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
                                     </svg>
@@ -296,7 +307,7 @@ public function moveSection($fromIndex, $toIndex)
                                 <button @click.stop="$wire.moveSection({{ $index }}, {{ $index + 1 }})"
                                     :class="{ 'opacity-50 cursor-not-allowed hidden': {{ $index }} === sections.length - 1 }"
                                     :disabled="{{ $index }} === sections.length - 1"
-                                    class="text-zinc-500 hover:text-blue-500">
+                                    class="cursor-pointer text-zinc-500 p-0.5 rounded hover:text-black hover:bg-zinc-100">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                                     </svg>
@@ -400,10 +411,34 @@ public function moveSection($fromIndex, $toIndex)
                 <div class="overflow-x-hidden overflow-y-scroll">
                     @foreach ($sections as $section)
                     <div wire:key="preview-{{ $section['id'] }}" >
-                        @livewire("{$section['namespace']}.{$section['type']}", [
-                            'content' => $section['content'], 
-                            'index' => $loop->index
-                        ], key("preview-child-{$section['id']}-" . now()->timestamp))
+                        @if($this->blockExists($section['type']))
+                            @livewire("{$section['namespace']}.{$section['type']}", [
+                                'content' => $section['content'], 
+                                'index' => $loop->index
+                            ], key("preview-child-{$section['id']}-" . now()->timestamp))
+                        @else
+                            <div class="p-4 border border-red-200 bg-red-50 rounded-md m-4">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-6 w-6 text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h3 class="text-sm font-medium text-red-800">Block Not Found</h3>
+                                        <div class="mt-2 text-sm text-red-700">
+                                            <p>The block type "{{ $section['type'] }}" could not be found. This block may have been deleted or moved.</p>
+                                        </div>
+                                        <div class="mt-4">
+                                            <button type="button" x-data x-on:click="$el.nextElementSibling.classList.toggle('hidden')" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                                View Schema
+                                            </button>
+                                            <pre class="mt-4 hidden bg-white p-4 rounded-md overflow-auto max-h-96 border border-gray-200 text-sm">{{ json_encode($section, JSON_PRETTY_PRINT) }}</pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                     @endforeach
                 </div>

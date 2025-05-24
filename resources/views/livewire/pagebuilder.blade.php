@@ -54,6 +54,9 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
             'namespace' => $buttons[$type]['namespace'],
             'schema' => $buttons[$type]['schema']
         ];
+
+        // Initialize order for the new section
+        $this->dispatch('section-added', ['id' => end($this->sections)['id'], 'index' => count($this->sections) - 1]);
     }
 
     public function removeSection($index)
@@ -206,11 +209,32 @@ public function moveSection(array $items)
 
 <div  x-data="{ 
     sections: @entangle('sections'), 
-    previewMode: 'desktop'
+    previewMode: 'desktop',
+    reorderSection(sectionId, direction) {
+        const currentOrder = $store.sectionOrders.get(sectionId);
+        const newOrder = currentOrder + direction;
+        
+        // Update all orders
+        Array.from($store.sectionOrders.entries()).forEach(([id, order]) => {
+            if (order === newOrder) {
+                $store.sectionOrders.set(id, currentOrder);
+            }
+        });
+        $store.sectionOrders.set(sectionId, newOrder);
+        
+        // Convert to array and send to Livewire
+        const orders = Array.from($store.sectionOrders.entries())
+            .map(([value, order]) => ({ value, order }));
+        $wire.moveSection(orders);
+    }
 }" x-init="
     $store.sectionOrders = new Map();
     sections.forEach((section, index) => {
         $store.sectionOrders.set(section.id, index);
+    });
+
+    $wire.on('section-added', (data) => {
+        $store.sectionOrders.set(data.id, data.index);
     });
 ">
 
@@ -246,7 +270,7 @@ public function moveSection(array $items)
 
             <h2 class="text-sm text-gray-500 font-bold mb-2">{{__('Add sections')}}</h2>
 
-            <div class="mb-4 grid grid-cols-2 gap-2">
+            <div class="mb-4 grid grid-cols-2 gap-2" >
                 @foreach($this->getEditorButtons() as $type => $button)
                     <button wire:key="add-section-{{ $type }}" wire:click="addSection('{{ $type }}', '{{ $button['name'] }}')" class="bg-white border border-gray-300 hover:border-blue-500 text-gray-800 px-5 py-3 rounded-sm flex items-start gap-2">
                        
@@ -269,6 +293,7 @@ public function moveSection(array $items)
                 <ul class="space-y-1.5 flex flex-col">
                     @foreach ($sections as $index => $section)
                     <li 
+                    wire:key="section-{{ $section['id'] }}"
                         x-data="{ 
                             isOpen: false,
                             order: $store.sectionOrders.get('{{ $section['id'] }}') || {{ $index }}
@@ -278,25 +303,21 @@ public function moveSection(array $items)
                         <div @click="isOpen = !isOpen" class="flex gap-4 items-center justify-between">
                         <div class="flex gap-2 items-center">
                             <div class="flex flex-col">
-                                <button @click.stop="
-                                    const currentOrder = $store.sectionOrders.get('{{ $section['id'] }}');
-                                    $store.sectionOrders.set('{{ $section['id'] }}', currentOrder - 1);
-                                " class="text-zinc-500 hover:text-blue-500">
+                                <button @click.stop="reorderSection('{{ $section['id'] }}', -1)" class="text-zinc-500 hover:text-blue-500">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
                                     </svg>
                                 </button>
-                                <button @click.stop="
-                                    const currentOrder = $store.sectionOrders.get('{{ $section['id'] }}');
-                                    $store.sectionOrders.set('{{ $section['id'] }}', currentOrder + 1);
-                                " class="text-zinc-500 hover:text-blue-500">
+                                <button @click.stop="reorderSection('{{ $section['id'] }}', 1)" class="text-zinc-500 hover:text-blue-500">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                                     </svg>
                                 </button>
                             </div>
 
-                            <input class="font-bold text-sm select-none" wire:model.live="sections.{{ $index }}.name"/>
+<div class="font-bold text-sm">
+    {{ $section['name'] }}
+</div>
                         </div>
                             <div class="text-zinc-500 transition-transform duration-200" :class="isOpen ? 'rotate-180' : 'rotate-0'">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
@@ -308,7 +329,7 @@ public function moveSection(array $items)
                         </div>
                         <div 
                             x-show="isOpen"
-                            x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter="transition ease-out duration-100"
                             x-transition:enter-start="transform opacity-0 -translate-y-2"
                             x-transition:enter-end="transform opacity-100 translate-y-0"
                             x-transition:leave="transition ease-in duration-150"
@@ -390,7 +411,7 @@ public function moveSection(array $items)
                 <!-- Preview Area -->
                 <div class="overflow-x-hidden overflow-y-scroll">
                     @foreach ($sections as $section)
-                    <div wire:key="preview-{{ $section['id'] }}">
+                    <div wire:key="preview-{{ $section['id'] }}" >
                         @livewire("{$section['namespace']}.{$section['type']}", [
                             'content' => $section['content'], 
                             'index' => $loop->index

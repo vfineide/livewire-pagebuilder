@@ -122,15 +122,23 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
     }
 
 // In your PageBuilder component
-public function moveSection(array $items)
+public function moveSection($fromIndex, $toIndex)
 {
-    $orderMap = collect($items)->pluck('order', 'value');
+    // Validate indices
+    if ($fromIndex < 0 || $fromIndex >= count($this->sections) ||
+        $toIndex < 0 || $toIndex >= count($this->sections)) {
+        return;
+    }
 
-    $this->sections = collect($this->sections)
-        ->sortBy(fn($section) => $orderMap->get($section['id']))
-        ->values()
-        ->toArray();
-
+    // Get the section to move
+    $section = $this->sections[$fromIndex];
+    
+    // Remove the section from its current position
+    array_splice($this->sections, $fromIndex, 1);
+    
+    // Insert the section at the new position
+    array_splice($this->sections, $toIndex, 0, [$section]);
+    
     $this->savePage();
 }
 
@@ -271,28 +279,24 @@ public function moveSection(array $items)
                     <li 
                     wire:key="section-{{ $section['id'] }}"
                         x-data="{ 
-                            isOpen: false,
-                            order: $store.sectionOrders.get('{{ $section['id'] }}') || {{ $index }}
+                            isOpen: false
                         }"
-                        :style="{ '--section-order': $store.sectionOrders.get('{{ $section['id'] }}') || {{ $index }} }"
                         class="section-item cursor-pointer bg-white p-3 rounded-sm shadow-sm border border-gray-100 hover:border-blue-500">
                         <div @click="isOpen = !isOpen" class="flex gap-4 items-center justify-between">
                         <div class="flex gap-2 items-center">
                             <div class="flex flex-col">
-                                <button @click.stop="
-                                    const currentOrder = $store.sectionOrders.get('{{ $section['id'] }}');
-                                    $store.sectionOrders.set('{{ $section['id'] }}', currentOrder - 1);
-                                    $wire.moveSection(Array.from($store.sectionOrders.entries()).map(([value, order]) => ({ value, order })));
-                                " class="text-zinc-500 hover:text-blue-500">
+                                <button @click.stop="$wire.moveSection({{ $index }}, {{ $index - 1 }})" 
+                                    :class="{ 'opacity-50 cursor-not-allowed hidden': {{ $index }} === 0 }"
+                                    :disabled="{{ $index }} === 0"
+                                    class="text-zinc-500 hover:text-blue-500">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
                                     </svg>
                                 </button>
-                                <button @click.stop="
-                                    const currentOrder = $store.sectionOrders.get('{{ $section['id'] }}');
-                                    $store.sectionOrders.set('{{ $section['id'] }}', currentOrder + 1);
-                                    $wire.moveSection(Array.from($store.sectionOrders.entries()).map(([value, order]) => ({ value, order })));
-                                " class="text-zinc-500 hover:text-blue-500">
+                                <button @click.stop="$wire.moveSection({{ $index }}, {{ $index + 1 }})"
+                                    :class="{ 'opacity-50 cursor-not-allowed hidden': {{ $index }} === sections.length - 1 }"
+                                    :disabled="{{ $index }} === sections.length - 1"
+                                    class="text-zinc-500 hover:text-blue-500">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                                     </svg>

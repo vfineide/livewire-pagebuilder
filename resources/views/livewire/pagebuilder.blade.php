@@ -54,9 +54,6 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
             'namespace' => $buttons[$type]['namespace'],
             'schema' => $buttons[$type]['schema']
         ];
-
-        // Initialize order for the new section
-        $this->dispatch('section-added', ['id' => end($this->sections)['id'], 'index' => count($this->sections) - 1]);
     }
 
     public function removeSection($index)
@@ -209,32 +206,11 @@ public function moveSection(array $items)
 
 <div  x-data="{ 
     sections: @entangle('sections'), 
-    previewMode: 'desktop',
-    reorderSection(sectionId, direction) {
-        const currentOrder = $store.sectionOrders.get(sectionId);
-        const newOrder = currentOrder + direction;
-        
-        // Update all orders
-        Array.from($store.sectionOrders.entries()).forEach(([id, order]) => {
-            if (order === newOrder) {
-                $store.sectionOrders.set(id, currentOrder);
-            }
-        });
-        $store.sectionOrders.set(sectionId, newOrder);
-        
-        // Convert to array and send to Livewire
-        const orders = Array.from($store.sectionOrders.entries())
-            .map(([value, order]) => ({ value, order }));
-        $wire.moveSection(orders);
-    }
+    previewMode: 'desktop'
 }" x-init="
     $store.sectionOrders = new Map();
     sections.forEach((section, index) => {
         $store.sectionOrders.set(section.id, index);
-    });
-
-    $wire.on('section-added', (data) => {
-        $store.sectionOrders.set(data.id, data.index);
     });
 ">
 
@@ -303,12 +279,20 @@ public function moveSection(array $items)
                         <div @click="isOpen = !isOpen" class="flex gap-4 items-center justify-between">
                         <div class="flex gap-2 items-center">
                             <div class="flex flex-col">
-                                <button @click.stop="reorderSection('{{ $section['id'] }}', -1)" class="text-zinc-500 hover:text-blue-500">
+                                <button @click.stop="
+                                    const currentOrder = $store.sectionOrders.get('{{ $section['id'] }}');
+                                    $store.sectionOrders.set('{{ $section['id'] }}', currentOrder - 1);
+                                    $wire.moveSection(Array.from($store.sectionOrders.entries()).map(([value, order]) => ({ value, order })));
+                                " class="text-zinc-500 hover:text-blue-500">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
                                     </svg>
                                 </button>
-                                <button @click.stop="reorderSection('{{ $section['id'] }}', 1)" class="text-zinc-500 hover:text-blue-500">
+                                <button @click.stop="
+                                    const currentOrder = $store.sectionOrders.get('{{ $section['id'] }}');
+                                    $store.sectionOrders.set('{{ $section['id'] }}', currentOrder + 1);
+                                    $wire.moveSection(Array.from($store.sectionOrders.entries()).map(([value, order]) => ({ value, order })));
+                                " class="text-zinc-500 hover:text-blue-500">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                                     </svg>

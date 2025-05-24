@@ -221,13 +221,17 @@ public function moveSection($fromIndex, $toIndex)
 
 <div  x-data="{ 
     sections: @entangle('sections'), 
-    previewMode: 'desktop'
+    previewMode: 'desktop',
+    openSectionId: null,
+    toggleSection(id) {
+        this.openSectionId = this.openSectionId === id ? null : id;
+    }
 }" x-init="
     $store.sectionOrders = new Map();
     sections.forEach((section, index) => {
         $store.sectionOrders.set(section.id, index);
     });
-">
+" @toggle-section.window="toggleSection($event.detail.id)">
 
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/filepond/4.32.6/filepond.js" integrity="sha512-9NomenG8ZkuctRQaDSN74Y0kyM2+1FGJTunuSfTFqif+vRrDZM2Ct0Ynp3CIbMNUQOWxd5RCyXexZzlz7KvUcw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -259,7 +263,7 @@ public function moveSection($fromIndex, $toIndex)
             <h2 class="text-xl font-bold mb-4">{{__('Page Builder')}}</h2>
 
 
-            <h2 class="text-sm text-gray-500 font-bold mb-2">{{__('Add sections')}}</h2>
+            <h2 class="text-sm text-gray-500 font-bold mb-2">{{__('Available sections')}}</h2>
 
             <div class="mb-4 grid grid-cols-2 gap-1" >
                 @foreach($this->getEditorButtons() as $type => $button)
@@ -285,30 +289,27 @@ public function moveSection($fromIndex, $toIndex)
             <h2 class="text-sm text-gray-500 font-bold mb-2">{{__('Your sections')}}</h2>
 
             <div class="space-y-4">
-                <ul class="space-y-1.5 flex flex-col">
+                <ul class="space-y-1 flex flex-col">
                     @foreach ($sections as $index => $section)
                     <li 
                     wire:key="section-{{ $section['id'] }}"
-                        x-data="{ 
-                            isOpen: false
-                        }"
-                        class="section-item cursor-pointer bg-white p-3 rounded-sm shadow-sm border border-gray-100 hover:border-blue-500">
-                        <div @click="isOpen = !isOpen" class="flex gap-4 items-center justify-between">
+                        class="section-item cursor-pointer bg-white px-3 py-2  rounded-sm border border-gray-200 hover:border-blue-500">
+                        <div @click="toggleSection('{{ $section['id'] }}')" class="min-h-8 flex gap-4 items-center justify-between">
                         <div class="flex gap-2 items-center">
                             <div class="flex flex-col -ml-1.5">
                                 <button @click.stop="$wire.moveSection({{ $index }}, {{ $index - 1 }})" 
                                     :class="{ 'opacity-50 cursor-not-allowed hidden': {{ $index }} === 0 }"
                                     :disabled="{{ $index }} === 0"
-                                    class="cursor-pointer text-zinc-500 p-0.5 rounded hover:text-black hover:bg-zinc-100">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                                    class="cursor-pointer text-zinc-300 px-0.5 rounded hover:text-black hover:bg-zinc-100">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
                                     </svg>
                                 </button>
                                 <button @click.stop="$wire.moveSection({{ $index }}, {{ $index + 1 }})"
                                     :class="{ 'opacity-50 cursor-not-allowed hidden': {{ $index }} === sections.length - 1 }"
                                     :disabled="{{ $index }} === sections.length - 1"
-                                    class="cursor-pointer text-zinc-500 p-0.5 rounded hover:text-black hover:bg-zinc-100">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                                    class="cursor-pointer text-zinc-300 px-0.5 rounded hover:text-black hover:bg-zinc-100">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                                     </svg>
                                 </button>
@@ -318,16 +319,14 @@ public function moveSection($fromIndex, $toIndex)
     {{ $section['name'] }}
 </div>
                         </div>
-                            <div class="text-zinc-500 transition-transform duration-200" :class="isOpen ? 'rotate-180' : 'rotate-0'">
+                            <div class="text-zinc-500 transition-transform duration-200" :class="openSectionId === '{{ $section['id'] }}' ? 'rotate-180' : 'rotate-0'">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                             </svg>
-
                             </div>
-
                         </div>
                         <div 
-                            x-show="isOpen"
+                            x-show="openSectionId === '{{ $section['id'] }}'"
                             x-transition:enter="transition ease-out duration-100"
                             x-transition:enter-start="transform opacity-0 -translate-y-2"
                             x-transition:enter-end="transform opacity-100 translate-y-0"
@@ -410,7 +409,18 @@ public function moveSection($fromIndex, $toIndex)
                 <!-- Preview Area -->
                 <div class="overflow-x-hidden overflow-y-scroll">
                     @foreach ($sections as $section)
-                    <div wire:key="preview-{{ $section['id'] }}" >
+                    <div wire:key="preview-{{ $section['id'] }}" class="group relative">
+                        <div class="absolute top-4 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <flux:button 
+                                type="button"
+                                variant="filled"
+                                class="cursor-pointer z-10"
+                                @click="$dispatch('toggle-section', { id: '{{ $section['id'] }}' })"
+                            >
+                            
+                                Edit
+                            </flux:button>
+                        </div>
                         @if($this->blockExists($section['type']))
                             @livewire("{$section['namespace']}.{$section['type']}", [
                                 'content' => $section['content'], 

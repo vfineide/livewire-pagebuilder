@@ -144,6 +144,18 @@ new class extends Component
 
 
 @switch($schema['type'])
+
+
+
+@case('color')
+<flux:label>{{ $schema['label'] }}</flux:label><br>
+<input type="color" 
+wire:model.live="section.{{ $schema['name'] }}"
+wire:blur="saveField($event.target.value)"
+/>
+
+                                    @break
+
     @case('select')
         <flux:select 
             wire:model="section.{{ $schema['name'] }}" 
@@ -226,6 +238,12 @@ new class extends Component
                                 @endphp
 
                                 @switch($field['type'])
+
+
+
+                                    @case('color')
+                                    <input type="color" wire:model="section.{{ $schema['name'] }}.{{ $repeaterIndex }}.fields.{{ $field['name'] }}" wire:change="saveSection" label="{{ $field['label'] }}" />
+                                    @break
                                 
                                     @case('input')
                                     

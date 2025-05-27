@@ -185,7 +185,7 @@ public function mount($fieldName, $fieldLabel, $section, $multiple = false)
 
 
                 
-                    <img src="{{ Storage::url($selectedMedia->path) }}" alt="Selected Media" class="w-full h-auto rounded"/>
+                    <img src="{{ Storage::url($selectedMedia->path) }}" alt="Selected Media" class="w-32 h-32 rounded"/>
             
         
             </div>

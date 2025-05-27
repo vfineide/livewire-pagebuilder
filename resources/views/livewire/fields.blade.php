@@ -43,8 +43,15 @@ new class extends Component
     {
         // Get the field's meta ID
         $fieldId = $this->section[$this->name . '.meta']['id'];
+        $type = $this->schema['type'];
+    
         
         // Create a minimal update object with just this field
+
+        if($type == 'switch'){
+            $value =  $value ? 1 : 0;
+        }
+
         $update = [
             $this->name => $value,
             $this->name . '.meta' => [
@@ -52,6 +59,8 @@ new class extends Component
                 'updatedAt' => now()->toDateTimeString()
             ]
         ];
+
+     
 
         // Dispatch the update with the field ID for tracking
         $this->dispatch('updateSectionField', [
@@ -146,6 +155,20 @@ new class extends Component
 @switch($schema['type'])
 
 
+@case('switch')
+<flux:switch
+    align="left"
+    wire:model.live="section.{{ $schema['name'] }}"
+    wire:change="saveSection"
+    label="{{ $schema['label'] }}"
+/>
+@break
+
+
+
+
+
+
 
 @case('color')
 <flux:label>{{ $schema['label'] }}</flux:label><br>
@@ -238,6 +261,16 @@ wire:blur="saveField($event.target.value)"
                                 @endphp
 
                                 @switch($field['type'])
+
+
+@case('switch')
+<flux:switch
+    align="left"
+    wire:model.live="section.{{ $schema['name'] }}.{{ $repeaterIndex }}.fields.{{ $field['name'] }}"
+    wire:change="saveSection"
+    label="{{ $field['label'] }}"
+/>
+@break
 
 
 

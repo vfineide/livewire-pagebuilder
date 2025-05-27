@@ -10,6 +10,7 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
 {
     public $page;
     public $sections = [];
+    public $rawContent = '';
     public $listeners = ['updateSectionContent', 'updateSectionField', 'selectedMedia'];
 
     public function mount($id)
@@ -26,6 +27,8 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
         $section['schema'] = $this->editorButtons[$section['type']]['schema'] ?? [];
         return $section;
     })->toArray();
+        
+        $this->rawContent = json_encode($this->sections, JSON_PRETTY_PRINT);
     }
 
 
@@ -119,6 +122,20 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
         $this->page->sections = $this->sections;
         $this->page->save();
        /// dd($this->page->sections);
+    }
+
+    public function saveRawContent()
+    {
+        try {
+            $decodedContent = json_decode($this->rawContent, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $this->page->sections = $decodedContent;
+                $this->page->save();
+                $this->sections = $decodedContent;
+            }
+        } catch (\Exception $e) {
+            // Handle error if needed
+        }
     }
 
 // In your PageBuilder component
@@ -262,6 +279,11 @@ public function moveSection($fromIndex, $toIndex)
             </div>
             <h2 class="text-xl font-bold mb-4">{{__('Page Builder')}}</h2>
 
+            <div class="flex gap-2 mb-4">
+                <flux:modal.trigger name="raw-content">
+                    <flux:button variant="outline" size="sm">Raw</flux:button>
+                </flux:modal.trigger>
+            </div>
 
             <h2 class="text-sm text-gray-500 font-bold mb-2">{{__('Available sections')}}</h2>
 
@@ -383,18 +405,38 @@ public function moveSection($fromIndex, $toIndex)
         <!-- Preview Column (1/2) -->
         <div class="w-3/4 p-4 bg-white overflow-y-auto h-screen">
 
+            <flux:modal name="raw-content" class="md:w-[800px]">
+                <div class="space-y-6">
+                    <div>
+                        <flux:heading size="lg">Raw Page Content</flux:heading>
+                        <flux:text class="mt-2">Edit the raw page content in JSON format.</flux:text>
+                    </div>
 
+                    <div class="relative">
+                        <textarea 
+                            wire:model="rawContent"
+                            class="w-full h-[500px] font-mono text-sm p-4 border rounded-md"
+                        ></textarea>
+                    </div>
 
+                    <div class="flex">
+                        <flux:spacer />
+                        <flux:button 
+                            wire:click="saveRawContent"
+                            variant="primary"
+                        >Save changes</flux:button>
+                    </div>
+                </div>
+            </flux:modal>
 
+            <div class="flex justify-between mb-2">
+                <h2 class="text-xl font-bold mb-4">Forhåndsvisning</h2>
 
-<div class="flex justify-between mb-2">
-    <h2 class="text-xl font-bold mb-4">Forhåndsvisning</h2>
-
-            <flux:button.group>
-    <flux:button @click="previewMode = 'desktop'">PC</flux:button>
-    <flux:button @click="previewMode = 'mobile'">Mobil</flux:button>
-</flux:button.group>
-</div>
+                <flux:button.group>
+                    <flux:button @click="previewMode = 'desktop'">PC</flux:button>
+                    <flux:button @click="previewMode = 'mobile'">Mobil</flux:button>
+                </flux:button.group>
+            </div>
             <!-- Browser Frame -->
             <div class="w-full rounded-md border shadow-lg h-[90vh] overflow-y-scroll @container" :class="previewMode === 'mobile' ? 'max-w-[390px] mx-auto' : 'w-full'">
                 <!-- Browser Title Bar -->

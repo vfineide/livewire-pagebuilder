@@ -73,11 +73,11 @@ new class extends Component
                 </div>
             @endforeach
             
-            <button wire:click="addRepeaterItem('{{ $wireModel }}')"
-                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                
+
+            <flux:button variant="filled" size="sm" wire:click="addRepeaterItem('{{ $wireModel }}')">
                 Add {{ Str::singular($config['label']) }}
-            </button>
+            </flux:button>
+
         </div>
         @break
 

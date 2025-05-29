@@ -72,20 +72,35 @@ public function mount($fieldName, $fieldLabel, $section, $multiple = false)
         try {
             $this->validate();
             
+            // Get the original filename and make it safe
+            $originalName = $this->photo->getClientOriginalName();
             $extension = $this->photo->getClientOriginalExtension();
-            $hashedName = md5($this->photo->getClientOriginalName() . time()) . '.' . $extension;
+            
+            // Remove extension from original name
+            $filenameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
+            
+            // Make filename safe by removing special characters and spaces
+            $safeFilename = preg_replace('/[^a-zA-Z0-9-]/', '-', $filenameWithoutExt);
+            // Replace multiple hyphens with a single hyphen
+            $safeFilename = preg_replace('/-+/', '-', $safeFilename);
+            // Replace underscores with hyphens
+            $safeFilename = str_replace('_', '-', $safeFilename);
+            $safeFilename = strtolower($safeFilename);
+            
+            // Add timestamp to ensure uniqueness
+            $uniqueFilename = $safeFilename . '-' . time() . '.' . $extension;
             
             // Determine disk based on environment
             $disk = app()->environment('production') ? 'public' : 'public';
             
-            $this->photo->storeAs('media', $hashedName, ['disk' => $disk]);
-            $path = 'media/'.$hashedName;
+            $this->photo->storeAs('media', $uniqueFilename, ['disk' => $disk]);
+            $path = 'media/'.$uniqueFilename;
 
             $media = new Media();
             $media->path = $path;
-            $media->name = $this->photo->getClientOriginalName();
+            $media->name = $originalName; // Store original name for display
             $media->mime_type = $this->photo->getMimeType();
-            $media->disk = $disk; // Save which disk was used
+            $media->disk = $disk;
             $media->size = $this->photo->getSize();
             $media->save();
 

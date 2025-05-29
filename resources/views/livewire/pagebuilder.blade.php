@@ -118,10 +118,11 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
 
     public function savePage()
     {
-       // dd($this->sections);
-        $this->page->sections = $this->sections;
-        $this->page->save();
-       /// dd($this->page->sections);
+        // Use a single database transaction for better performance
+        \DB::transaction(function () {
+            $this->page->sections = $this->sections;
+            $this->page->save();
+        });
     }
 
     public function saveRawContent()
@@ -138,26 +139,35 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
         }
     }
 
-// In your PageBuilder component
-public function moveSection($fromIndex, $toIndex)
-{
-    // Validate indices
-    if ($fromIndex < 0 || $fromIndex >= count($this->sections) ||
-        $toIndex < 0 || $toIndex >= count($this->sections)) {
-        return;
-    }
+    public function moveSection($fromIndex, $toIndex)
+    {
+        // Validate indices
+        if ($fromIndex < 0 || $fromIndex >= count($this->sections) ||
+            $toIndex < 0 || $toIndex >= count($this->sections)) {
+            return;
+        }
 
-    // Get the section to move
-    $section = $this->sections[$fromIndex];
-    
-    // Remove the section from its current position
-    array_splice($this->sections, $fromIndex, 1);
-    
-    // Insert the section at the new position
-    array_splice($this->sections, $toIndex, 0, [$section]);
-    
-    $this->savePage();
-}
+        // Get the section to move
+        $section = $this->sections[$fromIndex];
+        
+        // Remove the section from its current position
+        array_splice($this->sections, $fromIndex, 1);
+        
+        // Insert the section at the new position
+        array_splice($this->sections, $toIndex, 0, [$section]);
+        
+        // Update the sections array to ensure proper indexing
+        $this->sections = array_values($this->sections);
+        
+        // Save the changes using a transaction
+        \DB::transaction(function () {
+            $this->page->sections = $this->sections;
+            $this->page->save();
+        });
+
+        // Force a full page refresh
+        $this->redirect(request()->header('Referer'));
+    }
 
     public function duplicateSection($index)
     {
@@ -233,6 +243,27 @@ public function moveSection($fromIndex, $toIndex)
         $path = resource_path('views/livewire/blocks/' . $type . '.blade.php');
         return File::exists($path);
     }
+
+    // Add a new method for batch updates
+    public function batchUpdateSections($updates)
+    {
+        foreach ($updates as $update) {
+            $sectionIndex = $update['sectionIndex'];
+            $fieldId = $update['fieldId'];
+            $fieldName = $update['fieldName'];
+            $content = $update['content'];
+
+            if (isset($this->sections[$sectionIndex])) {
+                $this->sections[$sectionIndex]['content'] = array_merge(
+                    $this->sections[$sectionIndex]['content'] ?? [],
+                    $content
+                );
+            }
+        }
+
+        // Save all changes at once
+        $this->savePage();
+    }
 }; ?>
 
 
@@ -240,15 +271,33 @@ public function moveSection($fromIndex, $toIndex)
     sections: @entangle('sections'), 
     previewMode: 'desktop',
     openSectionId: null,
+    pendingUpdates: [],
+    updateTimeout: null,
     toggleSection(id) {
         this.openSectionId = this.openSectionId === id ? null : id;
+    },
+    queueUpdate(update) {
+        this.pendingUpdates.push(update);
+        clearTimeout(this.updateTimeout);
+        this.updateTimeout = setTimeout(() => {
+            if (this.pendingUpdates.length > 0) {
+                $wire.batchUpdateSections(this.pendingUpdates);
+                this.pendingUpdates = [];
+            }
+        }, 500);
     }
 }" x-init="
     $store.sectionOrders = new Map();
     sections.forEach((section, index) => {
         $store.sectionOrders.set(section.id, index);
     });
-" @toggle-section.window="toggleSection($event.detail.id)">
+" @toggle-section.window="toggleSection($event.detail.id)"
+   @sections-reordered.window="$nextTick(() => {
+        $store.sectionOrders = new Map();
+        sections.forEach((section, index) => {
+            $store.sectionOrders.set(section.id, index);
+        });
+    })">
 
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/filepond/4.32.6/filepond.js" integrity="sha512-9NomenG8ZkuctRQaDSN74Y0kyM2+1FGJTunuSfTFqif+vRrDZM2Ct0Ynp3CIbMNUQOWxd5RCyXexZzlz7KvUcw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -450,8 +499,8 @@ public function moveSection($fromIndex, $toIndex)
             
                 <!-- Preview Area -->
                 <div class="overflow-x-hidden overflow-y-scroll">
-                    @foreach ($sections as $section)
-                    <div wire:key="preview-{{ $section['id'] }}" class="group relative">
+                    @foreach ($sections as $index => $section)
+                    <div wire:key="preview-{{ $section['id'] }}-{{ $index }}" class="group relative">
                         <div class="absolute top-4 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                             <flux:button 
                                 type="button"
@@ -459,15 +508,14 @@ public function moveSection($fromIndex, $toIndex)
                                 class="cursor-pointer z-10"
                                 @click="$dispatch('toggle-section', { id: '{{ $section['id'] }}' })"
                             >
-                            
                                 Edit
                             </flux:button>
                         </div>
                         @if($this->blockExists($section['type']))
                             @livewire("{$section['namespace']}.{$section['type']}", [
                                 'content' => $section['content'], 
-                                'index' => $loop->index
-                            ], key("preview-child-{$section['id']}-" . now()->timestamp))
+                                'index' => $index
+                            ], key("preview-child-{$section['id']}-{$index}-" . now()->timestamp))
                         @else
                             <div class="p-4 border border-red-200 bg-red-50 rounded-md m-4">
                                 <div class="flex items-start gap-4">

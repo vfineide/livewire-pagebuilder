@@ -2,6 +2,8 @@
 
 use Livewire\Volt\Component;
 use Livewire\Attributes\On;
+use Illuminate\Support\Facades\Cache;
+
 
 new class extends Component
 {
@@ -35,6 +37,8 @@ new class extends Component
 
     public function saveSection()
     {
+        Cache::tags(['pages'])->flush();
+
         // Ensure we have the latest content before dispatching
         $this->dispatch('updateSectionContent', $this->index, $this->section);
     }
@@ -174,7 +178,7 @@ new class extends Component
 <flux:label>{{ $schema['label'] }}</flux:label><br>
 <input type="color" 
 wire:model.live="section.{{ $schema['name'] }}"
-wire:blur="saveField($event.target.value)"
+wire:blur="saveSection"
 />
 
                                     @break
@@ -183,7 +187,7 @@ wire:blur="saveField($event.target.value)"
         <flux:select 
             wire:model="section.{{ $schema['name'] }}" 
             placeholder="{{ $schema['label'] }}" 
-            wire:blur="saveField($event.target.value)"
+            wire:change="saveField($event.target.value)"
         >
             @foreach($schema['options'] as $option)
                 <flux:select.option 
@@ -207,7 +211,6 @@ wire:blur="saveField($event.target.value)"
         @break
 
     @case('input')
-    
         <flux:input 
             wire:model="section.{{ $schema['name'] }}"
             wire:blur="saveField($event.target.value)"
@@ -224,11 +227,14 @@ wire:blur="saveField($event.target.value)"
         @break
 
     @case('richtext')
+    <div class="max-w-[200px]">
         <flux:editor
+
             wire:model="section.{{ $schema['name'] }}"
             wire:blur="saveField($event.target.value)"
             label="{{ $schema['label'] }}"
         />
+    </div>
         @break
 
       @case('repeater')
@@ -296,6 +302,7 @@ wire:blur="saveField($event.target.value)"
                                         @break
 
                                     @case('richtext')
+
                                         <flux:editor
                                             wire:model="section.{{ $schema['name'] }}.{{ $repeaterIndex }}.fields.{{ $field['name'] }}"
                                             wire:change="saveSection"
@@ -334,13 +341,11 @@ wire:blur="saveField($event.target.value)"
                 @endforeach
             </div>
             
-            <button 
-                type="button"
-                wire:click="addRepeaterItem"
-                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
+
+            <flux:button variant="filled" size="sm" wire:click="addRepeaterItem">
                 Add {{ Str::singular($schema['label']) }}
-            </button>
+            </flux:button>
+    
         </div>
         @break
 

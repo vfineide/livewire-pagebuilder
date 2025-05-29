@@ -37,7 +37,8 @@ new class extends Component
 
     public function saveSection()
     {
-        Cache::tags(['pages'])->flush();
+        // Clear the entire cache instead of using tags
+        Cache::flush();
 
         // Ensure we have the latest content before dispatching
         $this->dispatch('updateSectionContent', $this->index, $this->section);

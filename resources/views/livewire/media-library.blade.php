@@ -156,6 +156,8 @@ public function mount($fieldName, $fieldLabel, $section, $multiple = false)
     public function editMedia()
     {
       $this->editedMediaName = $this->selectedMedia->name;
+      $this->editedMediaAlt = $this->selectedMedia->alt;
+      $this->editedMediaCaption = $this->selectedMedia->caption;
       Flux::modal('media-single-modal-' . $this->id)->show();
     }
     

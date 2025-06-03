@@ -337,7 +337,7 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
                 <flux:modal.trigger name="raw-content">
                     <flux:button variant="outline" size="sm">Raw</flux:button>
                 </flux:modal.trigger>
-                <flux:button href="/{{ $page->slug }}/" size="sm">Vis side</flux:button>
+                <flux:button href="/{{ $this->page->slug }}/" size="sm">Vis side</flux:button>
             </div>
 
             <h2 class="text-sm text-gray-500 font-bold mb-2">{{__('Available sections')}}</h2>

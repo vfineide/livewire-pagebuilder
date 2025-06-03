@@ -25,7 +25,6 @@ new class extends Component
 
     public $editedMedia;
     public $editedMediaAlt;
-    public $editedMediaCaption;
     public $editedMediaName;
     public $id;
 
@@ -157,7 +156,6 @@ public function mount($fieldName, $fieldLabel, $section, $multiple = false)
     {
       $this->editedMediaName = $this->selectedMedia->name;
       $this->editedMediaAlt = $this->selectedMedia->alt;
-      $this->editedMediaCaption = $this->selectedMedia->caption;
       Flux::modal('media-single-modal-' . $this->id)->show();
     }
     
@@ -166,7 +164,6 @@ public function mount($fieldName, $fieldLabel, $section, $multiple = false)
     {
         $this->selectedMedia->name = $this->editedMediaName;
         $this->selectedMedia->alt = $this->editedMediaAlt;
-        $this->selectedMedia->caption = $this->editedMediaCaption;
         $this->selectedMedia->save();
         Flux::modal('media-single-modal-' . $this->id)->close();
     }
@@ -304,7 +301,6 @@ public function mount($fieldName, $fieldLabel, $section, $multiple = false)
 
 <flux:input wire:model="editedMediaName" label="Tittel" />
 <flux:input wire:model="editedMediaAlt" label="Alt" />
-<flux:input wire:model="editedMediaCaption" label="Beskrivelse" />
 
 <flux:button wire:click="editMediaSave">Lagre</flux:button>
 @endif

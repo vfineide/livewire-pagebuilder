@@ -163,6 +163,8 @@ public function mount($fieldName, $fieldLabel, $section, $multiple = false)
     public function editMediaSave()
     {
         $this->selectedMedia->name = $this->editedMediaName;
+        $this->selectedMedia->alt = $this->editedMediaAlt;
+        $this->selectedMedia->caption = $this->editedMediaCaption;
         $this->selectedMedia->save();
         Flux::modal('media-single-modal-' . $this->id)->close();
     }
@@ -292,7 +294,7 @@ public function mount($fieldName, $fieldLabel, $section, $multiple = false)
 
 <flux:modal name="media-single-modal-{{ $id }}" class="w-3xl">
 
-
+<div class="space-y-4">
 <flux:heading>Bildeinnstillinger</flux:heading>
 @if($selectedMedia)
 
@@ -304,6 +306,6 @@ public function mount($fieldName, $fieldLabel, $section, $multiple = false)
 
 <flux:button wire:click="editMediaSave">Lagre</flux:button>
 @endif
-
+</div>
 </flux:modal>
 </div>

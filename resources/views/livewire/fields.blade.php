@@ -332,7 +332,15 @@ wire:blur="saveSection"
                                             :schema="$field"
                                             :index="$repeaterIndex"
                                             :name="$field['name']"
-                                            :content="['fields' => [$field['name'] => $fieldValue]]"
+                                            :content="[
+                                                'fields' => [
+                                                    $field['name'] => $fieldValue,
+                                                    $field['name'] . '.meta' => $item['fields'][$field['name'] . '.meta'] ?? [
+                                                        'id' => (string) \Illuminate\Support\Str::uuid(),
+                                                        'createdAt' => now()->toDateTimeString()
+                                                    ]
+                                                ]
+                                            ]"
                                             :key="'repeater-field-' . $item['id'] . '-' . $field['name']"
                                         />
                                 @endswitch

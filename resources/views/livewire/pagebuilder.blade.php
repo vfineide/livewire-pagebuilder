@@ -24,7 +24,12 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
     // 2) grab your sections
     $this->sections = collect($this->page->sections ?? [])->map(function($section) {
         // and attach the schema upfront
+
+        if (isset($section['type'])) {
         $section['schema'] = $this->editorButtons[$section['type']]['schema'] ?? [];
+        } else {
+            $section['schema'] = [];
+        }
         return $section;
     })->toArray();
         
@@ -213,10 +218,10 @@ new #[Layout('components.layouts.app.pagebuilder')] class extends Component
                 \Log::info("Path does not exist: " . $componentsPath);
                 continue;
             }
-            \Log::info("Checking path: " . $componentsPath);
+          //  \Log::info("Checking path: " . $componentsPath);
             
             $files = File::files($componentsPath);
-            \Log::info("Found " . count($files) . " files");
+          //  \Log::info("Found " . count($files) . " files");
 
             foreach ($files as $file) {
                 $content = file_get_contents($file->getPathname());

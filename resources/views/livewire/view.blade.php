@@ -16,6 +16,21 @@ new Class extends Component
         $this->sections = $this->page->sections ?? [];
     }
 
+    public function dehydrate()
+    {
+        // Exclude sections from serialization to reduce wire:snapshot size
+        $this->sections = [];
+    }
+
+    public function hydrate()
+    {
+        // Reload page and sections from database on each request
+        if ($this->page) {
+            $this->page = $this->page->fresh();
+            $this->sections = $this->page->sections ?? [];
+        }
+    }
+
     public function addSection($type, $name)
     {
         $buttons = $this->getEditorButtons();
@@ -30,12 +45,18 @@ new Class extends Component
             'content' => [],
             'namespace' => $buttons[$type]['namespace']
         ];
+        
+        // Save immediately to persist changes
+        $this->savePage();
     }
 
     public function removeSection($index)
     {
         unset($this->sections[$index]);
         $this->sections = array_values($this->sections);
+        
+        // Save immediately to persist changes
+        $this->savePage();
     }
 
     public function updateSectionContent($index, $content)
@@ -60,6 +81,9 @@ new Class extends Component
             $section = $this->sections[$oldIndex];
             array_splice($this->sections, $oldIndex, 1);
             array_splice($this->sections, $newIndex, 0, [$section]);
+            
+            // Save immediately to persist changes
+            $this->savePage();
         }
     }
 
